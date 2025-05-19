@@ -6,6 +6,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 var _DynamicForm_instances, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit;
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
+import $ from 'jquery';
 import ThemeManager from './themes/ThemeManager.js';
 import Theme from './themes/Theme.js';
 class DynamicForm {
@@ -222,7 +223,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
                 group.appendChild(input);
                 // Delay select2 init until after it's appended to DOM:
                 setTimeout(() => {
-                    if (window.$ && input && $(input).select2) {
+                    if (input && $(input).select2) {
                         // Merge custom select2 options if provided
                         const parentElement = input?.parentElement;
                         field.select2Instance = $(input).select2({
@@ -565,7 +566,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
     }
     else if (field.type === 'select2') {
         const select = field.select2Instance;
-        if (select && window.$) {
+        if (select) {
             const selectedValue = $(select).val();
             if (field.multiple) {
                 value = Array.isArray(selectedValue) ? selectedValue : [selectedValue];

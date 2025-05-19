@@ -3,6 +3,9 @@
  *
  * This file exports all the components of the Dynamic Form Builder package.
  */
+// Import and re-export jQuery
+import $ from 'jquery';
+export { $ };
 // Export the main DynamicForm class
 export { default as DynamicForm } from './dynamic-form-builder';
 // Export theme-related classes
