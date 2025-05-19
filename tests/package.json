@@ -1,0 +1,7 @@
+{
+  "name": "dynamic-form-builder-tests",
+  "version": "1.0.0",
+  "description": "Tests for dynamic-form-builder",
+  "type": "module",
+  "private": true
+}

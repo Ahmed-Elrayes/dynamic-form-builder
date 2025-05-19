@@ -430,6 +430,34 @@ const form = new DynamicForm(options);
 - CKEditor (optional, for rich text editing)
 - Select2 (optional, for enhanced select dropdowns)
 
+## Development
+
+### Building the Package
+
+To build the package, run:
+
+```bash
+npm run build
+```
+
+This will compile the TypeScript files into JavaScript in the `dist` directory.
+
+### Testing
+
+To run the tests, use:
+
+```bash
+npm test
+```
+
+The test script performs the following checks:
+1. Cleans the dist directory
+2. Builds the package using TypeScript compiler
+3. Verifies that all expected files are created in the dist directory
+4. Checks that the compiled files contain the expected exports and class definitions
+
+This ensures that the package can be built correctly and that the essential components are properly exported.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -441,3 +469,9 @@ Ahmed Elrayes - [ahmedwaill63@gmail.com](mailto:ahmedwaill63@gmail.com)
 ## Repository
 
 [GitHub Repository](https://github.com/Ahmed-Elrayes/dynamic-form-builder)
+
+## Acknowledgments
+
+This package was created with the assistance of:
+- [JetBrains AI Assistant](https://www.jetbrains.com/ai/) - AI-powered coding assistant
+- [Junie](https://junie.io/) - AI development assistant
