@@ -1,5 +1,6 @@
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
+import $ from 'jquery';
 import ThemeManager from './themes/ThemeManager.js';
 import Theme from './themes/Theme.js';
 import {DynamicFormOptions, FieldConfig, ModalInstance, ModalOptions, OptionConfig} from './types.js';
@@ -256,7 +257,7 @@ export default class DynamicForm {
 
                     // Delay select2 init until after it's appended to DOM:
                     setTimeout(() => {
-                        if (window.$ && input && $(input).select2) {
+                        if (input && $(input).select2) {
                             // Merge custom select2 options if provided
                             const parentElement = input?.parentElement;
                             field.select2Instance = $(input).select2({
@@ -607,7 +608,7 @@ export default class DynamicForm {
             }
         } else if (field.type === 'select2') {
             const select = field.select2Instance;
-            if (select && window.$) {
+            if (select) {
                 const selectedValue = $(select).val();
                 if (field.multiple) {
                     value = Array.isArray(selectedValue) ? selectedValue : [selectedValue];
