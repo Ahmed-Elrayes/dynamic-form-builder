@@ -17,7 +17,7 @@
     "tailwind",
     "theming"
   ],
-  "author": "",
+  "author": "Ahmed Elrayes",
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.0.0"
@@ -32,6 +32,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/dynamic-form-builder.git"
+    "url": "https://github.com/Ahmed-Elrayes/dynamic-form-builder.git"
   }
 }
