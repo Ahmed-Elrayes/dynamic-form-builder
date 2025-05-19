@@ -1,140 +1,443 @@
-# Dynamic Form Builder - Helper Text Feature
+# Dynamic Form Builder
 
-## Overview
-The Dynamic Form Builder has been enhanced to support helper text for form inputs. Helper text provides additional information or guidance to users about how to complete a form field.
+A flexible and customizable dynamic form builder with theming support for JavaScript applications.
 
-## Implementation Details
-A new feature has been added to the `dynamic-form-builder.js` class that allows you to specify helper text for any form field. The helper text will appear below the input field with appropriate styling.
+[![npm version](https://img.shields.io/npm/v/@elrayes/dynamic-form-builder.svg)](https://www.npmjs.com/package/@elrayes/dynamic-form-builder)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+## Features
+
+- **Dynamic Form Generation**: Create forms dynamically from JavaScript configuration objects
+- **Multiple Input Types**: Support for text, textarea, select, checkbox, radio, file uploads, and more
+- **Advanced Components**: Integration with Select2 and CKEditor
+- **Validation**: Built-in validation with customizable rules and error messages
+- **Theming**: Easily switch between Bootstrap 5 and Tailwind CSS themes
+- **TypeScript Support**: Full TypeScript definitions for better development experience
+- **Modal Support**: Display forms in modal dialogs
+- **Helper Text**: Add explanatory text to form fields
+- **File Uploads**: Preview images and display file information
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Basic Usage](#basic-usage)
+- [Field Types](#field-types)
+- [Validation](#validation)
+- [Theming](#theming)
+- [Advanced Usage](#advanced-usage)
+- [API Reference](#api-reference)
+- [TypeScript Support](#typescript-support)
+- [Requirements](#requirements)
+- [License](#license)
 
 ## Installation
-```npm
-npm i @elrayes/dynamic-form-builder
+
+### NPM
+
+```bash
+npm install @elrayes/dynamic-form-builder
 ```
 
+### Yarn
 
-## How to Use
+```bash
+yarn add @elrayes/dynamic-form-builder
+```
 
-When configuring your form fields, you can now include a `helper` property in the field configuration object:
+### Direct Import in Laravel with Vite
+
+In your `bootstrap.js` file:
 
 ```javascript
 import { DynamicForm, ThemeManager } from '@elrayes/dynamic-form-builder';
+
+// Make DynamicForm and ThemeManager available globally
 window.DynamicForm = DynamicForm;
 window.ThemeManager = ThemeManager;
-
-const formConfig = [
-    {
-        type: 'text',
-        name: 'username',
-        label: 'Username',
-        required: true,
-        placeholder: 'Enter your username',
-        helper: 'Username must be between 3-20 characters and contain only letters and numbers'
-    },
-    // Other form fields...
-];
 ```
 
-## Example
+## Basic Usage
 
-See `example-helper-text-usage.js` for a complete example of how to use the helper text feature with various input types.
+### Creating a Simple Form
 
-## Styling
-
-The helper text is styled using Bootstrap classes:
-- `form-text` - Base Bootstrap class for form helper text
-- `text-muted` - Makes the text appear in a muted color
-- `small` - Reduces the font size
-- `mt-1` - Adds a small top margin
-
-## HTML Structure
-
-For each form field with a helper property, the following HTML structure is generated:
-
-```html
-<div class="mb-3">
-    <label class="form-label">Field Label</label>
-    <input class="form-control" ... />
-    <div class="invalid-feedback"></div>
-    <div class="form-text text-muted small mt-1">Helper text goes here</div>
-</div>
-```
-
-## Compatibility
-
-This feature works with all input types supported by the Dynamic Form Builder:
-- Text inputs
-- Textareas
-- Select dropdowns
-- Checkboxes
-- Radio buttons
-- File inputs
-- CKEditor fields
-- Select2 fields
-
-## TypeScript Support
-
-The Dynamic Form Builder now includes TypeScript support for better type checking and IDE assistance. The following files have been converted to TypeScript:
-
-- `types.ts`: Contains common type definitions used across the project
-- `themes/Theme.ts`: Base theme class that defines the interface for all themes
-- `themes/ThemeManager.ts`: Manages theme registration and retrieval
-- `themes/Bootstrap5Theme.ts`: Bootstrap 5.2 theme implementation
-- `themes/TailwindTheme.ts`: Tailwind CSS theme implementation
-
-For the main `dynamic-form-builder.js` file, a TypeScript declaration file (`dynamic-form-builder.d.ts`) has been created to provide type definitions without changing the original JavaScript file.
-
-### Using with TypeScript
-
-To use the library in a TypeScript project, you can import the classes and types as follows:
-
-```typescript
-import DynamicForm from './dynamic-form-builder/dynamic-form-builder.js';
-import ThemeManager from './dynamic-form-builder/themes/ThemeManager.js';
-import { FieldConfig, DynamicFormOptions } from './dynamic-form-builder/types.js';
+```javascript
+import { DynamicForm, ThemeManager } from '@elrayes/dynamic-form-builder';
 
 // Define your form configuration
-const config: FieldConfig[] = [
+const formConfig = [
   {
-    label: 'Name',
-    name: 'name',
     type: 'text',
+    name: 'username',
+    label: 'Username',
     required: true,
-    placeholder: 'Enter your name',
-    helper: 'Please enter your full name'
+    placeholder: 'Enter your username',
+    helper: 'Username must be between 3-20 characters'
   },
-  // More fields...
+  {
+    type: 'email',
+    name: 'email',
+    label: 'Email Address',
+    required: true,
+    placeholder: 'Enter your email'
+  },
+  {
+    type: 'password',
+    name: 'password',
+    label: 'Password',
+    required: true,
+    placeholder: 'Enter your password'
+  },
+  {
+    type: 'submit',
+    label: 'Register'
+  }
+];
+
+// Create a new form
+// If mount is not set it will create a modal
+const form = new DynamicForm({
+  config: formConfig,
+  mount: 'form-container', // ID of the element to mount the form to
+  onSubmit: async (formData, form) => {
+    // Handle form submission
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      console.log('Success:', data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+});
+```
+
+### Using in HTML
+
+```html
+<div id="form-container"></div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const formConfig = [
+      // Your form configuration here
+    ];
+
+    const form = new DynamicForm({
+      config: formConfig,
+      mount: 'form-container',
+      onSubmit: async (formData, form) => {
+        // Handle form submission
+      }
+    });
+  });
+</script>
+```
+
+## Field Types
+
+The Dynamic Form Builder supports the following field types:
+
+### Basic Input Types
+
+- `text` - Text input
+- `email` - Email input
+- `password` - Password input
+- `number` - Number input
+- `tel` - Telephone input
+- `url` - URL input
+- `date` - Date input
+- `color` - Color picker
+- `hidden` - Hidden input
+
+### Complex Input Types
+
+- `textarea` - Multiline text input
+- `select` - Dropdown select
+- `select2` - Enhanced select with jQuery Select2
+- `checkbox` - Single checkbox
+- `radio` - Radio button group
+- `file` - File upload with preview
+- `ckeditor` - Rich text editor (requires CKEditor)
+- `submit` - Submit button
+
+### Example Configuration
+
+```javascript
+const formConfig = [
+  // Text input
+  {
+    type: 'text',
+    name: 'name',
+    label: 'Full Name',
+    required: true,
+    placeholder: 'Enter your full name'
+  },
+
+  // Select dropdown
+  {
+    type: 'select',
+    name: 'country',
+    label: 'Country',
+    options: [
+      { label: 'United States', value: 'us' },
+      { label: 'Canada', value: 'ca' },
+      { label: 'United Kingdom', value: 'uk' }
+    ],
+    required: true
+  },
+
+  // Radio buttons
+  {
+    type: 'radio',
+    name: 'gender',
+    label: 'Gender',
+    options: [
+      { label: 'Male', value: 'male' },
+      { label: 'Female', value: 'female' },
+      { label: 'Other', value: 'other' }
+    ],
+    required: true
+  },
+
+  // Checkbox
+  {
+    type: 'checkbox',
+    name: 'terms',
+    label: 'I agree to the terms and conditions',
+    required: true
+  },
+
+  // File upload
+  {
+    type: 'file',
+    name: 'profile_picture',
+    label: 'Profile Picture',
+    accept: 'image/*'
+  },
+
+  // Submit button
   {
     type: 'submit',
     label: 'Submit'
   }
 ];
+```
 
-// Create a new form
+## Validation
+
+The Dynamic Form Builder includes built-in validation for form fields:
+
+```javascript
+{
+  type: 'text',
+  name: 'username',
+  label: 'Username',
+  required: true,
+  validation: {
+    minLength: 3,
+    maxLength: 20,
+    pattern: /^[a-zA-Z0-9]+$/,
+    patternMsg: 'Username can only contain letters and numbers',
+    custom: (value, input, field) => {
+      // Custom validation logic
+      if (value === 'admin') {
+        return 'Username cannot be "admin"';
+      }
+      return true; // Return true if valid
+    }
+  }
+}
+```
+
+## Theming
+
+The Dynamic Form Builder supports multiple themes:
+
+```javascript
+// Use Bootstrap 5 theme (default)
 const form = new DynamicForm({
-  config,
+  config: formConfig,
+  mount: 'form-container',
+  theme: 'bootstrap5',
   onSubmit: async (formData, form) => {
     // Handle form submission
-    console.log('Form submitted!');
+  }
+});
+
+// Use Tailwind CSS theme
+const form = new DynamicForm({
+  config: formConfig,
+  mount: 'form-container',
+  theme: 'tailwind',
+  onSubmit: async (formData, form) => {
+    // Handle form submission
+  }
+});
+
+// Register a custom theme
+import { ThemeManager } from '@elrayes/dynamic-form-builder';
+import MyCustomTheme from './my-custom-theme';
+
+ThemeManager.register('custom', new MyCustomTheme());
+
+const form = new DynamicForm({
+  config: formConfig,
+  mount: 'form-container',
+  theme: 'custom',
+  onSubmit: async (formData, form) => {
+    // Handle form submission
   }
 });
 ```
 
-### Compiling TypeScript
+## Advanced Usage
 
-A `tsconfig.json` file has been included to configure TypeScript compilation. To compile the TypeScript files to JavaScript, you can use the TypeScript compiler:
+### Modal Forms
 
-```bash
-# Navigate to the dynamic-form-builder directory
-cd resources/js/dynamic-form-builder
-
-# Compile TypeScript files
-tsc
+```javascript
+const form = new DynamicForm({
+  config: formConfig,
+  modalOptions: {
+    id: 'myFormModal',
+    title: 'User Registration',
+    show: true,
+    staticBackdrop: true
+  },
+  onSubmit: async (formData, form) => {
+    // Handle form submission
+  }
+});
 ```
 
-Alternatively, you can compile specific files:
+### Helper Text
 
-```bash
-tsc --project resources/js/dynamic-form-builder/tsconfig.json
+```javascript
+{
+  type: 'password',
+  name: 'password',
+  label: 'Password',
+  required: true,
+  helper: 'Password must be at least 8 characters and include a number and special character'
+}
 ```
 
-This will generate JavaScript files with the same names but with `.js` extensions in the `dist` directory. You can modify the `tsconfig.json` file to change the output directory or other compilation options.
+### Select2 Integration
+
+```javascript
+{
+  type: 'select2',
+  name: 'tags',
+  label: 'Tags',
+  multiple: true,
+  options: [
+    { label: 'JavaScript', value: 'js' },
+    { label: 'PHP', value: 'php' },
+    { label: 'Python', value: 'py' }
+  ],
+  select2Options: {
+    tags: true,
+    placeholder: 'Select or create tags',
+    allowClear: true
+  }
+}
+```
+
+### CKEditor Integration
+
+```javascript
+{
+  type: 'ckeditor',
+  name: 'content',
+  label: 'Article Content',
+  required: true
+}
+```
+
+## API Reference
+
+### DynamicForm
+- `mount`: when it is not sent or null, it will create a modal
+```typescript
+new DynamicForm({
+  config: FieldConfig[],
+  mount?: string | HTMLElement | null, // if set to null it will create a modal
+  modalOptions?: ModalOptions,
+  onSubmit: (formData: FormData, form: HTMLFormElement) => Promise<any> | any,
+  onInitialized?: (instance: DynamicForm, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void,
+  theme?: string | Theme
+})
+```
+
+#### Methods
+
+- `getForm()`: Returns the form element
+- `getData()`: Returns the form configuration
+- `getModalInstance()`: Returns the modal instance
+- `collectFormInputs()`: Returns a map of field names to input elements
+- `destroy()`: Cleans up resources
+
+### ThemeManager
+
+```typescript
+// Get a registered theme
+ThemeManager.get(themeName: string): Theme
+
+// Register a new theme
+ThemeManager.register(themeName: string, theme: Theme): void
+
+// Get the default theme
+ThemeManager.getDefaultTheme(): Theme
+
+// Set the default theme
+ThemeManager.setDefaultTheme(themeName: string): void
+```
+
+## TypeScript Support
+
+The Dynamic Form Builder includes full TypeScript support:
+
+```typescript
+import { DynamicForm, ThemeManager, FieldConfig, DynamicFormOptions } from '@elrayes/dynamic-form-builder';
+
+const config: FieldConfig[] = [
+  {
+    type: 'text',
+    name: 'username',
+    label: 'Username',
+    required: true
+  },
+  // More fields...
+];
+
+const options: DynamicFormOptions = {
+  config,
+  mount: document.getElementById('form-container'),
+  onSubmit: async (formData, form) => {
+    // Handle form submission
+  }
+};
+
+const form = new DynamicForm(options);
+```
+
+## Requirements
+
+- jQuery 3.0+ (for Select2 integration)
+- Bootstrap 5 (for default theme)
+- CKEditor (optional, for rich text editing)
+- Select2 (optional, for enhanced select dropdowns)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Author
+
+Ahmed Elrayes - [ahmedwaill63@gmail.com](mailto:ahmedwaill63@gmail.com)
+
+## Repository
+
+[GitHub Repository](https://github.com/Ahmed-Elrayes/dynamic-form-builder)
