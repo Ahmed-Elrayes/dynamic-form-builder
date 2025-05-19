@@ -1,6 +1,6 @@
 {
   "name": "@elrayes/dynamic-form-builder",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A flexible and customizable dynamic form builder with theming support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
