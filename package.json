@@ -23,11 +23,11 @@
     "email": "ahmedwaill63@gmail.com"
   },
   "license": "MIT",
+  "dependencies": {
+    "jquery": ">=3.0.0"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
-    "jquery": ">=3.0.0"
   },
   "files": [
     "dist",
