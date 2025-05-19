@@ -6,11 +6,21 @@ The Dynamic Form Builder has been enhanced to support helper text for form input
 ## Implementation Details
 A new feature has been added to the `dynamic-form-builder.js` class that allows you to specify helper text for any form field. The helper text will appear below the input field with appropriate styling.
 
+## Installation
+```npm
+npm i @elrayes/dynamic-form-builder
+```
+
+
 ## How to Use
 
 When configuring your form fields, you can now include a `helper` property in the field configuration object:
 
 ```javascript
+import { DynamicForm, ThemeManager } from '@elrayes/dynamic-form-builder';
+window.DynamicForm = DynamicForm;
+window.ThemeManager = ThemeManager;
+
 const formConfig = [
     {
         type: 'text',

@@ -671,6 +671,14 @@ export default class DynamicForm {
             message = field.validation.maxLengthMsg || `Maximum length is ${field.validation.maxLength}`;
         }
 
+        // Validate inputs
+        if (isValid) {
+            const validation =  this.#validateInputs(field, value);
+            if (!validation.isValid) {
+                message = validation.message;
+            }
+        }
+
         // Pattern (only for strings)
         if (isValid && field.validation?.pattern && typeof value === 'string') {
             const pattern = field.validation.pattern instanceof RegExp ? field.validation.pattern : new RegExp(field.validation.pattern);
@@ -735,6 +743,65 @@ export default class DynamicForm {
         }
 
         return isValid;
+    }
+
+    #validateInputs(field: FieldConfig, value: any): { isValid: boolean; message: string } {
+        switch (field.type) {
+            case 'text':
+            case 'password':
+            case 'search':
+            case 'hidden':
+                return {isValid: typeof value === 'string', message: 'Invalid string format.'};
+
+            case 'number':
+                if (value.trim() === '' || isNaN(Number(value))) {
+                    return {isValid: false, message: 'Invalid number format.'};
+                }
+                return {isValid: true, message: ''};
+
+            case 'email':
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    return {isValid: true, message: ''};
+                }
+                return {isValid: false, message: 'Invalid email format.'};
+
+            case 'url':
+                try {
+                    new URL(value);
+                    return {isValid: true, message: ''};
+                } catch {
+                    return {isValid: false, message: 'Invalid URL format.'};
+                }
+
+            case 'tel':
+                if (/^[\d\-\+\(\) ]+$/.test(value)) {
+                    return {isValid: true, message: ''};
+                }
+                return {isValid: false, message: 'Invalid telephone format.'};
+
+            case 'date':
+                if (/^\d{4}-\d{2}-\d{2}$/.test(value) && !isNaN(Date.parse(value))) {
+                    return {isValid: true, message: ''};
+                }
+                return {isValid: false, message: 'Invalid date format. Use YYYY-MM-DD.'};
+
+            case 'color':
+                if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                    return {isValid: true, message: ''};
+                }
+                return {isValid: false, message: 'Invalid color format. Use #RRGGBB.'};
+
+            case 'checkbox':
+            case 'radio':
+                if (value.length > 0) {
+                    return {isValid: true, message: ''};
+                }
+                return {isValid: false, message: 'No value selected.'};
+
+            default:
+                return {isValid: true, message: ''};
+        }
+
     }
 
     #clearValidation(field: FieldConfig | any): void {
