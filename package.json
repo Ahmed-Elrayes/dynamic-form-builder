@@ -1,0 +1,37 @@
+{
+  "name": "dynamic-form-builder",
+  "version": "1.0.0",
+  "description": "A flexible and customizable dynamic form builder with theming support",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "form",
+    "dynamic",
+    "builder",
+    "bootstrap",
+    "tailwind",
+    "theming"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "jquery": ">=3.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/dynamic-form-builder.git"
+  }
+}
