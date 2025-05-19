@@ -17,7 +17,10 @@
     "tailwind",
     "theming"
   ],
-  "author": "Ahmed Elrayes",
+  "author": {
+    "name": "Ahmed Elrayes",
+    "email": "ahmedwaill63@gmail.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.0.0"
@@ -33,5 +36,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Ahmed-Elrayes/dynamic-form-builder.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   }
 }
