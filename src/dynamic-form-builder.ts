@@ -674,7 +674,8 @@ export default class DynamicForm {
         // Validate inputs
         if (isValid) {
             const validation =  this.#validateInputs(field, value);
-            if (!validation.isValid) {
+            isValid = validation.isValid;
+            if (!isValid) {
                 message = validation.message;
             }
         }

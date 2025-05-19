@@ -3,7 +3,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _DynamicForm_instances, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit;
+var _DynamicForm_instances, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit;
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
 import ThemeManager from './themes/ThemeManager.js';
@@ -634,6 +634,14 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
         isValid = false;
         message = field.validation.maxLengthMsg || `Maximum length is ${field.validation.maxLength}`;
     }
+    // Validate inputs
+    if (isValid) {
+        const validation = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateInputs).call(this, field, value);
+        isValid = validation.isValid;
+        if (!isValid) {
+            message = validation.message;
+        }
+    }
     // Pattern (only for strings)
     if (isValid && field.validation?.pattern && typeof value === 'string') {
         const pattern = field.validation.pattern instanceof RegExp ? field.validation.pattern : new RegExp(field.validation.pattern);
@@ -694,6 +702,55 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
         }
     }
     return isValid;
+}, _DynamicForm_validateInputs = function _DynamicForm_validateInputs(field, value) {
+    switch (field.type) {
+        case 'text':
+        case 'password':
+        case 'search':
+        case 'hidden':
+            return { isValid: typeof value === 'string', message: 'Invalid string format.' };
+        case 'number':
+            if (value.trim() === '' || isNaN(Number(value))) {
+                return { isValid: false, message: 'Invalid number format.' };
+            }
+            return { isValid: true, message: '' };
+        case 'email':
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                return { isValid: true, message: '' };
+            }
+            return { isValid: false, message: 'Invalid email format.' };
+        case 'url':
+            try {
+                new URL(value);
+                return { isValid: true, message: '' };
+            }
+            catch {
+                return { isValid: false, message: 'Invalid URL format.' };
+            }
+        case 'tel':
+            if (/^[\d\-\+\(\) ]+$/.test(value)) {
+                return { isValid: true, message: '' };
+            }
+            return { isValid: false, message: 'Invalid telephone format.' };
+        case 'date':
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value) && !isNaN(Date.parse(value))) {
+                return { isValid: true, message: '' };
+            }
+            return { isValid: false, message: 'Invalid date format. Use YYYY-MM-DD.' };
+        case 'color':
+            if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                return { isValid: true, message: '' };
+            }
+            return { isValid: false, message: 'Invalid color format. Use #RRGGBB.' };
+        case 'checkbox':
+        case 'radio':
+            if (value.length > 0) {
+                return { isValid: true, message: '' };
+            }
+            return { isValid: false, message: 'No value selected.' };
+        default:
+            return { isValid: true, message: '' };
+    }
 }, _DynamicForm_clearValidation = function _DynamicForm_clearValidation(field) {
     if (field.type === 'radio') {
         // Get all radios in the group
