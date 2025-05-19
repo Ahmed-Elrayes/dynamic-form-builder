@@ -40,7 +40,6 @@
     "url": "https://github.com/Ahmed-Elrayes/dynamic-form-builder.git"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "@elrayes:registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   }
 }
