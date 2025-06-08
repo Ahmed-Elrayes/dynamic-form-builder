@@ -46,4 +46,9 @@ export default class DynamicForm {
      * Destroy the form and clean up resources
      */
     destroy(): void;
+    /**
+     * Clears all form inputs and validations, effectively reinitializing the form
+     * @returns {DynamicForm} The form instance for chaining
+     */
+    clearForm(): DynamicForm;
 }

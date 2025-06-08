@@ -1,6 +1,7 @@
 /**
  * Type definitions for dynamic-form-builder
  */
+import {DynamicForm} from "./index";
 
 // Extend jQuery interface to include select2
 declare global {
@@ -120,7 +121,7 @@ export interface DynamicFormOptions {
   config: (FieldConfig | any)[];
   mount?: string | HTMLElement | null;
   modalOptions?: ModalOptions;
-  onSubmit: (formData: FormData, form: HTMLFormElement) => Promise<any> | any;
+  onSubmit: (formData: FormData, form: HTMLFormElement, builder: DynamicForm) => Promise<any> | any;
   onInitialized?: (instance: any, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
   theme?: string | any;
 }

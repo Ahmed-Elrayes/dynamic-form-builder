@@ -365,9 +365,9 @@ new DynamicForm({
   config: FieldConfig[],
   mount?: string | HTMLElement | null, // if set to null it will create a modal
   modalOptions?: ModalOptions,
-  onSubmit: (formData: FormData, form: HTMLFormElement) => Promise<any> | any,
+  onSubmit: (formData: FormData, form: HTMLFormElement, builder: DynamicForm) => Promise<any> | any,
   onInitialized?: (instance: DynamicForm, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void,
-  theme?: string | Theme
+  theme?: string | Theme,
 })
 ```
 
@@ -377,6 +377,7 @@ new DynamicForm({
 - `getData()`: Returns the form configuration
 - `getModalInstance()`: Returns the modal instance
 - `collectFormInputs()`: Returns a map of field names to input elements
+- `clearForm()`: Clears all inputs and validations, effectively reinitializing the form
 - `destroy()`: Cleans up resources
 
 ### ThemeManager
@@ -474,4 +475,4 @@ Ahmed Elrayes - [ahmedwaill63@gmail.com](mailto:ahmedwaill63@gmail.com)
 
 This package was created with the assistance of:
 - [JetBrains AI Assistant](https://www.jetbrains.com/ai/) - AI-powered coding assistant
-- [Junie](https://junie.io/) - AI development assistant
+- [JetBrains Junie](https://www.jetbrains.com/junie/) - AI development assistant

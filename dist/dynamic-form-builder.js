@@ -141,6 +141,85 @@ class DynamicForm {
             this._modal.remove();
         }
     }
+    /**
+     * Clears all form inputs and validations, effectively reinitializing the form
+     * @returns {DynamicForm} The form instance for chaining
+     */
+    clearForm() {
+        // Clear all validations
+        __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearAllValidation).call(this);
+        // Reset all input values
+        this._config.forEach(field => {
+            if (field.type === 'submit')
+                return;
+            switch (field.type) {
+                case 'checkbox': {
+                    const checkbox = this._form.querySelector(`[name="${field.name}"]`);
+                    if (checkbox)
+                        checkbox.checked = false;
+                    break;
+                }
+                case 'radio': {
+                    const radios = this._form.querySelectorAll(`input[name="${field.name}"]`);
+                    radios.forEach(radio => radio.checked = false);
+                    break;
+                }
+                case 'select': {
+                    const select = this._form.querySelector(`select[name="${field.name}"]`);
+                    if (select) {
+                        if (select.multiple) {
+                            Array.from(select.options).forEach(option => option.selected = false);
+                        }
+                        else {
+                            select.selectedIndex = 0;
+                        }
+                    }
+                    break;
+                }
+                case 'select2': {
+                    if (field.select2Instance) {
+                        $(field.select2Instance).val(null).trigger('change');
+                    }
+                    break;
+                }
+                case 'file': {
+                    const fileInput = this._form.querySelector(`input[name="${field.name}"]`);
+                    if (fileInput) {
+                        fileInput.value = '';
+                        // Clear file preview if exists
+                        const fileInfo = fileInput.parentElement?.querySelector('.' + this._theme.getFileInfoClasses());
+                        if (fileInfo) {
+                            fileInfo.classList.add('d-none');
+                            fileInfo.innerHTML = '';
+                        }
+                    }
+                    break;
+                }
+                case 'ckeditor': {
+                    if (field.ckeditorInstance) {
+                        field.ckeditorInstance.setData('');
+                    }
+                    break;
+                }
+                case 'textarea': {
+                    const textarea = this._form.querySelector(`textarea[name="${field.name}"]`);
+                    if (textarea)
+                        textarea.value = '';
+                    break;
+                }
+                default: {
+                    const input = this._form.querySelector(`input[name="${field.name}"]`);
+                    if (input)
+                        input.value = '';
+                }
+            }
+            // Clear any custom field state
+            if (typeof field.onClear === 'function') {
+                field.onClear(field.input, field);
+            }
+        });
+        return this;
+    }
 }
 _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicForm_render() {
     if (!this._mount) {
@@ -841,7 +920,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
             }
         });
         if (typeof this._onSubmit === 'function') {
-            await this._onSubmit(formData, this._form);
+            await this._onSubmit(formData, this._form, this);
         }
         // --- AFTER submit: remove modal ---
         if (this._modalInstance) {
