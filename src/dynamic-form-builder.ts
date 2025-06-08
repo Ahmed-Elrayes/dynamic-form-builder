@@ -16,7 +16,7 @@ declare global {
 
 export default class DynamicForm {
     private _config: (FieldConfig | any)[];
-    private _mount: HTMLElement | null;
+    private _mount: HTMLElement | Element | null;
     private _onSubmit: (formData: FormData, form: HTMLFormElement, builder: DynamicForm) => Promise<any> | any;
     private _onInitialized?: (instance: DynamicForm, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
     private _ckeditors: (FieldConfig | any)[] = []; // Hold field configs for CKEditor

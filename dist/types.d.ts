@@ -94,9 +94,9 @@ export interface ModalCreationResult {
  */
 export interface DynamicFormOptions {
     config: (FieldConfig | any)[];
-    mount?: string | HTMLElement | null;
+    mount?: string | HTMLElement | Element | null;
     modalOptions?: ModalOptions;
-    onSubmit: (formData: FormData, form: HTMLFormElement, builder: DynamicForm) => Promise<any> | any;
+    onSubmit: (formData: FormData, form: HTMLFormElement, builder?: DynamicForm | any) => Promise<any> | any;
     onInitialized?: (instance: any, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
     theme?: string | any;
 }
