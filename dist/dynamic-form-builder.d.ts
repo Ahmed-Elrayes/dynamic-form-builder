@@ -18,10 +18,12 @@ export default class DynamicForm {
     private _modalInstance;
     private _modal;
     private _form;
+    private _requiredPackages;
+    private _hasSelect2;
     /**
      * @param {DynamicFormOptions} options
      */
-    constructor({ config, mount, modalOptions, onSubmit, onInitialized, theme }: DynamicFormOptions);
+    constructor({ config, mount, modalOptions, onSubmit, onInitialized, theme, waitForDOMReady }: DynamicFormOptions);
     /**
      * Get the form element
      * @returns {HTMLFormElement}
@@ -46,4 +48,9 @@ export default class DynamicForm {
      * Destroy the form and clean up resources
      */
     destroy(): void;
+    /**
+     * Clears all form inputs and validations, effectively reinitializing the form
+     * @returns {DynamicForm} The form instance for chaining
+     */
+    clearForm(): DynamicForm;
 }

@@ -367,7 +367,8 @@ new DynamicForm({
   modalOptions?: ModalOptions,
   onSubmit: (formData: FormData, form: HTMLFormElement) => Promise<any> | any,
   onInitialized?: (instance: DynamicForm, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void,
-  theme?: string | Theme
+  theme?: string | Theme,
+  waitForDOMReady?: boolean // if true, waits for DOM to be fully loaded before initializing
 })
 ```
 
@@ -378,6 +379,10 @@ new DynamicForm({
 - `getModalInstance()`: Returns the modal instance
 - `collectFormInputs()`: Returns a map of field names to input elements
 - `destroy()`: Cleans up resources
+
+#### Options
+
+- `waitForDOMReady`: When set to `true`, the form will wait for the DOM to be fully loaded before initializing. This is useful when you need to ensure all DOM elements are available before the form is rendered.
 
 ### ThemeManager
 
