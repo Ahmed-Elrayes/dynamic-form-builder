@@ -1,10 +1,11 @@
 /**
  * Type definitions for dynamic-form-builder
  */
-import { DynamicForm } from "./index";
+import DynamicForm from "./dynamic-form-builder";
+import { Select2Plugin } from "select2";
 declare global {
-    interface JQuery {
-        select2: any;
+    interface JQuery<TElement = HTMLElement> {
+        select2: Select2Plugin<TElement>;
         data(key: string): any;
     }
 }
@@ -94,9 +95,10 @@ export interface ModalCreationResult {
  */
 export interface DynamicFormOptions {
     config: (FieldConfig | any)[];
-    mount?: string | HTMLElement | Element | null;
+    mount?: string | HTMLElement | null;
     modalOptions?: ModalOptions;
-    onSubmit: (formData: FormData, form: HTMLFormElement, builder?: DynamicForm | any) => Promise<any> | any;
+    onSubmit: (formData: FormData, form: HTMLFormElement, instance: DynamicForm) => Promise<any> | any;
     onInitialized?: (instance: any, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
     theme?: string | any;
+    waitForDOMReady?: boolean;
 }

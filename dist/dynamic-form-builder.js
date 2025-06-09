@@ -3,7 +3,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _DynamicForm_instances, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit;
+var _DynamicForm_instances, _DynamicForm_initialize, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit, _DynamicForm_checkRequiredPackages, _DynamicForm_checkPackageAvailability;
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
 import $ from 'jquery';
@@ -13,15 +13,19 @@ class DynamicForm {
     /**
      * @param {DynamicFormOptions} options
      */
-    constructor({ config, mount = null, modalOptions = {}, onSubmit, onInitialized = undefined, theme = null }) {
+    constructor({ config, mount = null, modalOptions = {}, onSubmit, onInitialized = undefined, theme = null, waitForDOMReady = false }) {
         _DynamicForm_instances.add(this);
         this._ckeditors = []; // Hold field configs for CKEditor
         this._modalInstance = null;
         this._modal = null;
+        this._requiredPackages = new Set();
+        this._hasSelect2 = false; // Flag to track if select2 is available
         this._config = config;
         this._mount = typeof mount === 'string' ? document.getElementById(mount) : mount;
         this._onSubmit = onSubmit;
         this._onInitialized = onInitialized;
+        // Check for required packages based on field types
+        __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_checkRequiredPackages).call(this);
         // Initialize theme
         if (theme instanceof Theme) {
             this._theme = theme;
@@ -37,48 +41,19 @@ class DynamicForm {
             title: 'Form Submission',
             show: true
         }, modalOptions);
-        // If mount not provided, create modal and use its body as mount
-        if (!mount) {
-            const modalResult = this._theme.createModal(this._modalOptions);
-            this._modal = modalResult.modal;
-            this._mount = modalResult.modalBody;
+        // If waitForDOMReady is true, wait for DOM to be fully loaded before initializing
+        if (waitForDOMReady) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_initialize).call(this, mount));
+            }
+            else {
+                // DOM already loaded
+                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_initialize).call(this, mount);
+            }
         }
         else {
-            this._mount = typeof mount === 'string' ? document.getElementById(mount) : mount;
-        }
-        if (!this._mount) {
-            throw new Error('Mount element not found');
-        }
-        this._form = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_render).call(this);
-        // Gather all input DOM elements by name
-        const inputNodes = this.collectFormInputs();
-        // Call the initialized event AFTER rendering, BEFORE showing modal
-        if (typeof this._onInitialized === 'function') {
-            // Provide both form instance and form DOM for maximum flexibility
-            this._onInitialized(this, this._form, inputNodes);
-        }
-        // Show modal if we created it and modalOptions.show is true
-        if (!mount && this._modal) {
-            // Initialize the modal using the theme's initializeModal method
-            this._modalInstance = this._theme.initializeModal(this._modal, {
-                staticBackdrop: true
-            });
-            // Listen for the modal:hidden event
-            if (this._modal) {
-                this._modal.addEventListener('modal:hidden', () => {
-                    this.destroy();
-                });
-            }
-            // Show the modal if modalOptions.show is true
-            if (this._modalOptions.show) {
-                this._modalInstance.show();
-            }
-            // Blur active element when modal is hidden
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                }
-            });
+            // Initialize immediately
+            __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_initialize).call(this, mount);
         }
     }
     /**
@@ -221,7 +196,51 @@ class DynamicForm {
         return this;
     }
 }
-_DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicForm_render() {
+_DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _DynamicForm_initialize(mount) {
+    // If mount not provided, create modal and use its body as mount
+    if (!mount) {
+        const modalResult = this._theme.createModal(this._modalOptions);
+        this._modal = modalResult.modal;
+        this._mount = modalResult.modalBody;
+    }
+    else {
+        this._mount = typeof mount === 'string' ? document.getElementById(mount) : mount;
+    }
+    if (!this._mount) {
+        throw new Error('Mount element not found');
+    }
+    this._form = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_render).call(this);
+    // Gather all input DOM elements by name
+    const inputNodes = this.collectFormInputs();
+    // Call the initialized event AFTER rendering, BEFORE showing modal
+    if (typeof this._onInitialized === 'function') {
+        // Provide both form instance and form DOM for maximum flexibility
+        this._onInitialized(this, this._form, inputNodes);
+    }
+    // Show modal if we created it and modalOptions.show is true
+    if (!mount && this._modal) {
+        // Initialize the modal using the theme's initializeModal method
+        this._modalInstance = this._theme.initializeModal(this._modal, {
+            staticBackdrop: true
+        });
+        // Listen for the modal:hidden event
+        if (this._modal) {
+            this._modal.addEventListener('modal:hidden', () => {
+                this.destroy();
+            });
+        }
+        // Show the modal if modalOptions.show is true
+        if (this._modalOptions.show) {
+            this._modalInstance.show();
+        }
+        // Blur active element when modal is hidden
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+        });
+    }
+}, _DynamicForm_render = function _DynamicForm_render() {
     if (!this._mount) {
         throw new Error('Mount element not found');
     }
@@ -302,19 +321,60 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
                 group.appendChild(input);
                 // Delay select2 init until after it's appended to DOM:
                 setTimeout(() => {
-                    if (input && $(input).select2) {
-                        // Merge custom select2 options if provided
-                        const parentElement = input?.parentElement;
-                        field.select2Instance = $(input).select2({
-                            width: '100%',
-                            dropdownParent: parentElement || document.body,
-                            ...field.select2Options
-                        }).on('change', () => {
-                            __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
-                            __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateField).call(this, field);
-                        });
-                        const select2Selection = $(field.select2Instance).data('select2');
-                        field.$select2Container = select2Selection.$container.get(0);
+                    try {
+                        // Check again if select2 is available now - more thorough check
+                        const select2Available = !(typeof $ === 'undefined' ||
+                            typeof $.fn === 'undefined' ||
+                            typeof $.fn.select2 === 'undefined' ||
+                            typeof $.fn.select2 !== 'function');
+                        this._hasSelect2 = select2Available;
+                        if (input && select2Available) {
+                            // Merge custom select2 options if provided
+                            const parentElement = input?.parentElement;
+                            field.select2Instance = $(input).select2({
+                                width: '100%',
+                                dropdownParent: parentElement || document.body,
+                                ...field.select2Options
+                            }).on('change', () => {
+                                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
+                                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateField).call(this, field);
+                            });
+                            const select2Selection = $(field.select2Instance).data('select2');
+                            field.$select2Container = select2Selection.$container.get(0);
+                        }
+                        else if (input && !select2Available && this._requiredPackages.has('select2')) {
+                            // If select2 is not available, try to initialize it again after a delay
+                            // This helps with production builds where select2 might be loaded asynchronously
+                            console.warn(`DynamicFormBuilder: Select2 not immediately available for field "${field.name}". Retrying...`);
+                            // Try again after a longer delay (500ms)
+                            setTimeout(() => {
+                                // Final attempt to check if select2 is available
+                                const finalSelect2Available = !(typeof $ === 'undefined' ||
+                                    typeof $.fn === 'undefined' ||
+                                    typeof $.fn.select2 === 'undefined' ||
+                                    typeof $.fn.select2 !== 'function');
+                                if (input && finalSelect2Available) {
+                                    // Merge custom select2 options if provided
+                                    const parentElement = input?.parentElement;
+                                    field.select2Instance = $(input).select2({
+                                        width: '100%',
+                                        dropdownParent: parentElement || document.body,
+                                        ...field.select2Options
+                                    }).on('change', () => {
+                                        __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
+                                        __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateField).call(this, field);
+                                    });
+                                    const select2Selection = $(field.select2Instance).data('select2');
+                                    field.$select2Container = select2Selection.$container.get(0);
+                                }
+                                else {
+                                    console.warn(`DynamicFormBuilder: Could not initialize select2 for field "${field.name}" because select2 is not available.`);
+                                }
+                            }, 500);
+                        }
+                    }
+                    catch (e) {
+                        console.error(`DynamicFormBuilder: Error initializing select2 for field "${field.name}":`, e);
                     }
                     // onCreate event per field:
                     if (typeof field.onCreate === 'function' && input) {
@@ -931,6 +991,58 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_render = function _DynamicF
         // Handle submit error, show message, etc.
         // Modal remains open on failure
         console.error('Submission error:', e);
+    }
+}, _DynamicForm_checkRequiredPackages = function _DynamicForm_checkRequiredPackages() {
+    // Check if any field requires specific packages
+    this._config.forEach(field => {
+        if (field.type === 'select2') {
+            this._requiredPackages.add('select2');
+        }
+        else if (field.type === 'ckeditor') {
+            this._requiredPackages.add('ckeditor');
+        }
+    });
+    // If we're using a modal, we need Bootstrap
+    if (!this._mount) {
+        this._requiredPackages.add('bootstrap');
+    }
+    // Always check for jQuery as it's a base dependency
+    this._requiredPackages.add('jquery');
+    // Check if required packages are available and show warnings
+    __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_checkPackageAvailability).call(this);
+}, _DynamicForm_checkPackageAvailability = function _DynamicForm_checkPackageAvailability() {
+    if (this._requiredPackages.has('jquery') && (typeof $ === 'undefined' || typeof window?.$ === 'undefined')) {
+        console.warn('DynamicFormBuilder: jQuery is required but not available. Some features may not work correctly.');
+    }
+    // For select2, we'll check if it's available, but we won't show a warning immediately
+    // since it might be loaded asynchronously. The warning will be shown when trying to 
+    // initialize a select2 field if select2 is still not available at that time.
+    try {
+        // More thorough check for select2 availability
+        this._hasSelect2 = !(typeof $ === 'undefined' ||
+            typeof $.fn === 'undefined' ||
+            typeof $.fn.select2 === 'undefined' ||
+            typeof $.fn.select2 !== 'function');
+        // If jQuery is available but select2 isn't attached to it yet, we'll try to check again after a delay
+        // This helps with production builds where select2 might be loaded asynchronously
+        if (!this._hasSelect2 && typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && this._requiredPackages.has('select2')) {
+            setTimeout(() => {
+                this._hasSelect2 = !(typeof $ === 'undefined' ||
+                    typeof $.fn === 'undefined' ||
+                    typeof $.fn.select2 === 'undefined' ||
+                    typeof $.fn.select2 !== 'function');
+            }, 100);
+        }
+    }
+    catch (e) {
+        console.error('DynamicFormBuilder: Error checking select2 availability:', e);
+        this._hasSelect2 = false;
+    }
+    if (this._requiredPackages.has('bootstrap') && (typeof window?.bootstrap === 'undefined')) {
+        console.warn('DynamicFormBuilder: Bootstrap is required for modal functionality but not available. Modals will not function correctly.');
+    }
+    if (this._requiredPackages.has('ckeditor') && (typeof window?.initializeEditor === 'undefined')) {
+        console.warn('DynamicFormBuilder: CKEditor initialization function is required for ckeditor fields but not available. Rich text editing will not function correctly.');
     }
 };
 export default DynamicForm;
