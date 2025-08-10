@@ -158,7 +158,7 @@ class DynamicForm {
                     break;
                 }
                 case 'file': {
-                    const fileInput = this._form.querySelector(`input[name="${field.name}"]`);
+                    const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`);
                     if (fileInput) {
                         fileInput.value = '';
                         // Clear file preview if exists
@@ -1052,6 +1052,23 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 formData.set(editorField.name, ta.getData());
             }
         });
+        // Append files from Dropzone fields that don't have a URL (defer upload until submit)
+        this._config.forEach(field => {
+            if (field.type === 'dropzone') {
+                const hasUrl = field.dropzoneOptions && typeof field.dropzoneOptions.url === 'string' && field.dropzoneOptions.url.length > 0;
+                if (!hasUrl && field.dropzoneInstance && typeof field.dropzoneInstance.getAcceptedFiles === 'function') {
+                    const files = field.dropzoneInstance.getAcceptedFiles();
+                    if (files && files.length) {
+                        if (field.multiple) {
+                            files.forEach(f => formData.append(`${field.name}[]`, f));
+                        }
+                        else {
+                            formData.append(field.name, files[0]);
+                        }
+                    }
+                }
+            }
+        });
         if (typeof this._onSubmit === 'function') {
             await this._onSubmit(formData, this._form, this);
         }
@@ -1073,6 +1090,9 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
         }
         else if (field.type === 'ckeditor') {
             this._requiredPackages.add('ckeditor');
+        }
+        else if (field.type === 'dropzone') {
+            this._requiredPackages.add('dropzone');
         }
     });
     // If we're using a modal, we need Bootstrap
@@ -1116,6 +1136,9 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
     }
     if (this._requiredPackages.has('ckeditor') && (typeof window?.initializeEditor === 'undefined')) {
         console.warn('DynamicFormBuilder: CKEditor initialization function is required for ckeditor fields but not available. Rich text editing will not function correctly.');
+    }
+    if (this._requiredPackages.has('dropzone') && (typeof window?.Dropzone === 'undefined')) {
+        console.warn('DynamicFormBuilder: Dropzone is required for dropzone fields but not available. File drag-and-drop will not function.');
     }
 }, _DynamicForm_isBoolean = function _DynamicForm_isBoolean(value) {
     return typeof value === 'boolean';

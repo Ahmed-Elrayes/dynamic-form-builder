@@ -1073,7 +1073,7 @@ export default class DynamicForm {
                     break;
                 }
                 case 'file': {
-                    const fileInput = this._form.querySelector(`input[name="${field.name}"]`) as HTMLInputElement;
+                    const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`) as HTMLInputElement;
                     if (fileInput) {
                         fileInput.value = '';
                         // Clear file preview if exists
@@ -1133,6 +1133,23 @@ export default class DynamicForm {
                 }
             });
 
+            // Append files from Dropzone fields that don't have a URL (defer upload until submit)
+            this._config.forEach(field => {
+                if (field.type === 'dropzone') {
+                    const hasUrl = field.dropzoneOptions && typeof field.dropzoneOptions.url === 'string' && field.dropzoneOptions.url.length > 0;
+                    if (!hasUrl && field.dropzoneInstance && typeof field.dropzoneInstance.getAcceptedFiles === 'function') {
+                        const files: File[] = field.dropzoneInstance.getAcceptedFiles();
+                        if (files && files.length) {
+                            if (field.multiple) {
+                                files.forEach(f => formData.append(`${field.name}[]`, f));
+                            } else {
+                                formData.append(field.name, files[0]);
+                            }
+                        }
+                    }
+                }
+            });
+
             if (typeof this._onSubmit === 'function') {
                 await this._onSubmit(formData, this._form, this);
             }
@@ -1159,6 +1176,8 @@ export default class DynamicForm {
                 this._requiredPackages.add('select2');
             } else if (field.type === 'ckeditor') {
                 this._requiredPackages.add('ckeditor');
+            } else if (field.type === 'dropzone') {
+                this._requiredPackages.add('dropzone');
             }
         });
 
@@ -1217,6 +1236,10 @@ export default class DynamicForm {
 
         if (this._requiredPackages.has('ckeditor') && (typeof window?.initializeEditor === 'undefined')) {
             console.warn('DynamicFormBuilder: CKEditor initialization function is required for ckeditor fields but not available. Rich text editing will not function correctly.');
+        }
+
+        if (this._requiredPackages.has('dropzone') && (typeof (window as any)?.Dropzone === 'undefined')) {
+            console.warn('DynamicFormBuilder: Dropzone is required for dropzone fields but not available. File drag-and-drop will not function.');
         }
     }
 
