@@ -3,7 +3,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _DynamicForm_instances, _DynamicForm_initialize, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit, _DynamicForm_checkRequiredPackages, _DynamicForm_checkPackageAvailability;
+var _DynamicForm_instances, _DynamicForm_initialize, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit, _DynamicForm_checkRequiredPackages, _DynamicForm_checkPackageAvailability, _DynamicForm_isBoolean;
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
 import $ from 'jquery';
@@ -170,6 +170,12 @@ class DynamicForm {
                     }
                     break;
                 }
+                case 'dropzone': {
+                    if (field.dropzoneInstance && typeof field.dropzoneInstance.removeAllFiles === 'function') {
+                        field.dropzoneInstance.removeAllFiles(true);
+                    }
+                    break;
+                }
                 case 'ckeditor': {
                     if (field.ckeditorInstance) {
                         field.ckeditorInstance.setData('');
@@ -267,7 +273,9 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
         if (field.type !== 'checkbox' && field.type !== 'radio') {
             const label = document.createElement('label');
             label.textContent = field.label || field.name;
-            label.setAttribute('for', field.name || '');
+            if (field.type !== 'dropzone') {
+                label.setAttribute('for', field.name || '');
+            }
             label.className = this._theme.getLabelClasses();
             group.appendChild(label);
         }
@@ -402,7 +410,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                                     option.selected = field.value.includes(opt.value);
                                 }
                                 else {
-                                    option.selected = field.value === opt.value;
+                                    option.selected = field.value === opt.value || field.selected;
                                 }
                             }
                         }
@@ -414,7 +422,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                                     option.selected = field.value.includes(opt);
                                 }
                                 else {
-                                    option.selected = field.value === opt;
+                                    option.selected = field.value === opt || field.selected;
                                 }
                             }
                         }
@@ -493,7 +501,9 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 input = document.createElement('input');
                 input.type = 'file';
                 input.className = this._theme.getInputClasses('file');
-                input.name = field.name;
+                // Support multiple files
+                input.multiple = Boolean(field.multiple);
+                input.name = field.multiple ? `${field.name}[]` : field.name;
                 input.id = field.name || '';
                 if (field.required)
                     input.required = true;
@@ -511,25 +521,23 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                         const fileInput = e.target;
                         if (!fileInput.files || !fileInput.files.length)
                             return;
-                        const file = fileInput.files[0];
-                        // Check accept MIME/file-extension validation
-                        let allowed = true;
-                        if (field.accept) {
-                            // Accept can be a comma sep list: .jpg,.png,image/* etc
-                            const acceptArr = field.accept.split(',')
-                                .map((item) => item.trim().toLowerCase());
-                            // If any accept matches (either extension or mime)
-                            allowed = acceptArr.some((acc) => {
+                        // Validate accept for all files if provided
+                        const validateFile = (f) => {
+                            if (!field.accept)
+                                return true;
+                            const acceptArr = field.accept.split(',').map((item) => item.trim().toLowerCase());
+                            return acceptArr.some((acc) => {
                                 if (acc.startsWith('.')) {
-                                    return file.name.toLowerCase().endsWith(acc);
+                                    return f.name.toLowerCase().endsWith(acc);
                                 }
                                 if (acc.endsWith('/*')) {
-                                    return file.type.startsWith(acc.replace('/*', '/'));
+                                    return f.type.startsWith(acc.replace('/*', '/'));
                                 }
-                                return file.type === acc;
+                                return f.type === acc;
                             });
-                        }
-                        if (!allowed) {
+                        };
+                        const files = Array.from(fileInput.files);
+                        if (!files.every(validateFile)) {
                             input.setCustomValidity('File type not allowed.');
                             input.classList.add(this._theme.getInvalidInputClasses());
                             const feedback = input.parentElement?.querySelector('.' + this._theme.getValidationErrorClasses());
@@ -538,7 +546,21 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                             }
                             return;
                         }
-                        // If image, show preview + dimension
+                        // If multiple, do not render images/videos previews
+                        if (field.multiple) {
+                            const list = document.createElement('ul');
+                            list.className = this._theme.getFileInfoTextClasses();
+                            files.forEach(f => {
+                                const li = document.createElement('li');
+                                li.textContent = `${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+                                list.appendChild(li);
+                            });
+                            fileInfo.innerHTML = '';
+                            fileInfo.appendChild(list);
+                            fileInfo.classList.remove('d-none');
+                            return;
+                        }
+                        const file = files[0];
                         if (file.type.startsWith('image/')) {
                             const reader = new FileReader();
                             reader.onload = (ev) => {
@@ -564,7 +586,6 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                             reader.readAsDataURL(file);
                         }
                         else {
-                            // Show only name/size for non-images
                             fileInfo.innerHTML = `
                                     <div class="${this._theme.getFileInfoTextClasses()}">Name: ${file.name}</div>
                                     <div class="${this._theme.getFileInfoTextClasses()}">Size: ${(file.size / 1024).toFixed(1)} KB</div>
@@ -578,6 +599,58 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 if (typeof field.onCreate === 'function') {
                     field.onCreate(input, field, idx);
                 }
+                break;
+            }
+            case 'dropzone': {
+                // Create a container for Dropzone
+                const dzDiv = document.createElement('div');
+                dzDiv.id = field.name ? `${field.name}_dropzone` : `dropzone_${idx}`;
+                dzDiv.className = 'dropzone';
+                group.appendChild(dzDiv);
+                input = dzDiv;
+                // Try to initialize Dropzone if available
+                setTimeout(() => {
+                    try {
+                        const hasDropzone = typeof window.Dropzone !== 'undefined';
+                        if (!hasDropzone) {
+                            console.warn(`DynamicFormBuilder: Dropzone not available for field "${field.name}". Make sure to include Dropzone assets.`);
+                        }
+                        else {
+                            // Build options
+                            const hasUrl = field.dropzoneOptions && typeof field.dropzoneOptions.url === 'string' && field.dropzoneOptions.url.length > 0;
+                            const opts = {
+                                url: hasUrl ? field.dropzoneOptions.url : '/',
+                                autoProcessQueue: hasUrl ? (field.dropzoneOptions.autoProcessQueue ?? true) : false,
+                                uploadMultiple: Boolean(field.multiple),
+                                maxFiles: field.multiple ? null : 1,
+                                autoDiscover: false,
+                                paramName: field.name,
+                                addRemoveLinks: true,
+                                clickable: true,
+                                hiddenInputContainer: group,
+                                ...(field.accept ? { acceptedFiles: field.accept } : {}),
+                                ...field.dropzoneOptions
+                            };
+                            const DZ = window.Dropzone;
+                            field.dropzoneInstance = new DZ(dzDiv, opts);
+                            field.input = field.dropzoneInstance.hiddenFileInput;
+                            field.input.id = field.name;
+                            // Basic validation clear on add/remove
+                            field.dropzoneInstance.on('addedfile', () => {
+                                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
+                            });
+                            field.dropzoneInstance.on('removedfile', () => {
+                                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
+                            });
+                        }
+                    }
+                    catch (e) {
+                        console.error(`DynamicFormBuilder: Error initializing Dropzone for field "${field.name}":`, e);
+                    }
+                    if (typeof field.onCreate === 'function' && input) {
+                        field.onCreate(input, field, idx);
+                    }
+                });
                 break;
             }
             default: {
@@ -855,7 +928,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
             }
             return { isValid: true, message: '' };
         case 'email':
-            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || (value.trim() === '' && !field.required)) {
                 return { isValid: true, message: '' };
             }
             return { isValid: false, message: 'Invalid email format.' };
@@ -1044,6 +1117,8 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
     if (this._requiredPackages.has('ckeditor') && (typeof window?.initializeEditor === 'undefined')) {
         console.warn('DynamicFormBuilder: CKEditor initialization function is required for ckeditor fields but not available. Rich text editing will not function correctly.');
     }
+}, _DynamicForm_isBoolean = function _DynamicForm_isBoolean(value) {
+    return typeof value === 'boolean';
 };
 export default DynamicForm;
 //# sourceMappingURL=dynamic-form-builder.js.map
