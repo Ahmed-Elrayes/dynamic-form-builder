@@ -271,7 +271,7 @@ export default class DynamicForm {
                             if (typeof opt === 'object') {
                                 option.value = String(opt.value);
                                 option.textContent = opt.label;
-                                option.selected = opt.selected || false;
+                                option.selected = !!opt.selected;
                             } else {
                                 option.value = opt;
                                 option.textContent = opt;
@@ -369,7 +369,7 @@ export default class DynamicForm {
                                     if (Array.isArray(field.value)) {
                                         option.selected = field.value.includes(opt.value);
                                     } else {
-                                        option.selected = field.value === opt.value || field.selected;
+                                        option.selected = field.value === opt.value || !!field.selected;
                                     }
                                 }
                             } else {
@@ -379,7 +379,7 @@ export default class DynamicForm {
                                     if (Array.isArray(field.value)) {
                                         option.selected = field.value.includes(opt);
                                     } else {
-                                        option.selected = field.value === opt || field.selected;
+                                        option.selected = field.value === opt || !!field.selected;
                                     }
                                 }
                             }
