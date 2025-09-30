@@ -316,7 +316,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                         if (typeof opt === 'object') {
                             option.value = String(opt.value);
                             option.textContent = opt.label;
-                            option.selected = opt.selected || false;
+                            option.selected = !!opt.selected;
                         }
                         else {
                             option.value = opt;
@@ -410,7 +410,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                                     option.selected = field.value.includes(opt.value);
                                 }
                                 else {
-                                    option.selected = field.value === opt.value || field.selected;
+                                    option.selected = field.value === opt.value || !!field.selected;
                                 }
                             }
                         }
@@ -422,7 +422,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                                     option.selected = field.value.includes(opt);
                                 }
                                 else {
-                                    option.selected = field.value === opt || field.selected;
+                                    option.selected = field.value === opt || !!field.selected;
                                 }
                             }
                         }
@@ -820,8 +820,14 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
     // Required
     if (field.required) {
         let missing = false;
-        if (field.type === 'checkbox' && Array.isArray(value)) {
-            missing = value.length === 0;
+        if (field.type === 'checkbox') {
+            if (Array.isArray(value)) {
+                missing = value.length === 0;
+            }
+            else {
+                // Single checkbox: required means it must be checked (true)
+                missing = value !== true;
+            }
         }
         else if (field.type === 'select' && Array.isArray(value)) {
             missing = value.length === 0 || value.every(v => !v);
@@ -923,7 +929,14 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
         case 'hidden':
             return { isValid: typeof value === 'string', message: 'Invalid string format.' };
         case 'number':
-            if (value.trim() === '' || isNaN(Number(value))) {
+            if (typeof value === 'string' && value.trim() === '') {
+                // Allow empty number when not required
+                return { isValid: !field.required, message: 'Invalid number format.' };
+            }
+            if (value === null || typeof value === 'undefined') {
+                return { isValid: !field.required, message: 'Invalid number format.' };
+            }
+            if (isNaN(Number(value))) {
                 return { isValid: false, message: 'Invalid number format.' };
             }
             return { isValid: true, message: '' };
@@ -956,11 +969,23 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
             }
             return { isValid: false, message: 'Invalid color format. Use #RRGGBB.' };
         case 'checkbox':
+            if (Array.isArray(value)) {
+                if (!field.required)
+                    return { isValid: true, message: '' };
+                return { isValid: value.length > 0, message: 'No value selected.' };
+            }
+            if (typeof value === 'boolean') {
+                if (!field.required)
+                    return { isValid: true, message: '' };
+                return { isValid: value === true, message: 'No value selected.' };
+            }
+            // Fallback for unexpected types
+            return { isValid: !field.required, message: 'No value selected.' };
         case 'radio':
-            if (value.length > 0) {
+            if (!field.required && (value === '' || value === null || typeof value === 'undefined')) {
                 return { isValid: true, message: '' };
             }
-            return { isValid: false, message: 'No value selected.' };
+            return { isValid: !!value, message: 'No value selected.' };
         default:
             return { isValid: true, message: '' };
     }
@@ -1108,7 +1133,7 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
         console.warn('DynamicFormBuilder: jQuery is required but not available. Some features may not work correctly.');
     }
     // For select2, we'll check if it's available, but we won't show a warning immediately
-    // since it might be loaded asynchronously. The warning will be shown when trying to 
+    // since it might be loaded asynchronously. The warning will be shown when trying to
     // initialize a select2 field if select2 is still not available at that time.
     try {
         // More thorough check for select2 availability

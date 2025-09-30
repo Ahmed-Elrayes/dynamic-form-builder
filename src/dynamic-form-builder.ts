@@ -786,8 +786,13 @@ export default class DynamicForm {
         // Required
         if (field.required) {
             let missing = false;
-            if (field.type === 'checkbox' && Array.isArray(value)) {
-                missing = value.length === 0;
+            if (field.type === 'checkbox') {
+                if (Array.isArray(value)) {
+                    missing = value.length === 0;
+                } else {
+                    // Single checkbox: required means it must be checked (true)
+                    missing = value !== true;
+                }
             } else if (field.type === 'select' && Array.isArray(value)) {
                 missing = value.length === 0 || value.every(v => !v);
             } else if (field.type === 'radio') {
@@ -897,7 +902,14 @@ export default class DynamicForm {
                 return {isValid: typeof value === 'string', message: 'Invalid string format.'};
 
             case 'number':
-                if (value.trim() === '' || isNaN(Number(value))) {
+                if (typeof value === 'string' && value.trim() === '') {
+                    // Allow empty number when not required
+                    return {isValid: !field.required, message: 'Invalid number format.'};
+                }
+                if (value === null || typeof value === 'undefined') {
+                    return {isValid: !field.required, message: 'Invalid number format.'};
+                }
+                if (isNaN(Number(value))) {
                     return {isValid: false, message: 'Invalid number format.'};
                 }
                 return {isValid: true, message: ''};
@@ -935,11 +947,22 @@ export default class DynamicForm {
                 return {isValid: false, message: 'Invalid color format. Use #RRGGBB.'};
 
             case 'checkbox':
+                if (Array.isArray(value)) {
+                    if (!field.required) return {isValid: true, message: ''};
+                    return {isValid: value.length > 0, message: 'No value selected.'};
+                }
+                if (typeof value === 'boolean') {
+                    if (!field.required) return {isValid: true, message: ''};
+                    return {isValid: value === true, message: 'No value selected.'};
+                }
+                // Fallback for unexpected types
+                return {isValid: !field.required, message: 'No value selected.'};
+
             case 'radio':
-                if (value.length > 0) {
+                if (!field.required && (value === '' || value === null || typeof value === 'undefined')) {
                     return {isValid: true, message: ''};
                 }
-                return {isValid: false, message: 'No value selected.'};
+                return {isValid: !!value, message: 'No value selected.'};
 
             default:
                 return {isValid: true, message: ''};
@@ -1202,7 +1225,7 @@ export default class DynamicForm {
         }
 
         // For select2, we'll check if it's available, but we won't show a warning immediately
-        // since it might be loaded asynchronously. The warning will be shown when trying to 
+        // since it might be loaded asynchronously. The warning will be shown when trying to
         // initialize a select2 field if select2 is still not available at that time.
         try {
             // More thorough check for select2 availability
