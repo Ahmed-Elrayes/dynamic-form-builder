@@ -1094,6 +1094,29 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 }
             }
         });
+        // Ensure checkboxes are included even when unchecked
+        this._config.forEach(field => {
+            if (field.type === 'checkbox') {
+                const inputs = this._form.querySelectorAll(`input[type="checkbox"][name="${field.name}"]`);
+                if (inputs.length <= 1) {
+                    const input = inputs[0];
+                    const checked = !!input?.checked;
+                    // Always set explicit boolean string value
+                    formData.set(field.name, checked ? 'true' : 'false');
+                }
+                else {
+                    // If multiple checkboxes share the same name, preserve checked ones;
+                    // when none are checked, still send an empty indicator key.
+                    const anyChecked = Array.from(inputs).some(i => i.checked);
+                    if (!anyChecked) {
+                        // Represent empty selection; since names don't use [] here, send empty string
+                        if (!formData.has(field.name)) {
+                            formData.set(field.name, '');
+                        }
+                    }
+                }
+            }
+        });
         if (typeof this._onSubmit === 'function') {
             await this._onSubmit(formData, this._form, this);
         }
