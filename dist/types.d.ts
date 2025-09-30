@@ -26,6 +26,8 @@ export interface FieldConfig {
     select2Instance?: any;
     $select2Container?: HTMLElement;
     accept?: string;
+    dropzoneOptions?: Record<string, any>;
+    dropzoneInstance?: any;
     rows?: number;
     ckeditorInstance?: any;
     validation?: ValidationOptions;
@@ -39,7 +41,7 @@ export interface FieldConfig {
  */
 export interface OptionConfig {
     label: string;
-    value: string | number;
+    value: string | number | boolean;
     selected?: boolean;
 }
 /**
