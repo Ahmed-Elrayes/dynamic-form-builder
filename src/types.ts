@@ -26,6 +26,11 @@ export interface FieldConfig {
     required?: boolean;
     helper?: string;
 
+    // Behavior flags
+    readonly?: boolean;                 // If true, render as read-only and exclude from FormData
+    allowEmpty?: boolean;               // If true, include empty values for this field in FormData
+    returnNullAsEmpty?: boolean;        // If true, convert null to empty string when including
+
     // Select/Radio/Checkbox options
     options?: Array<OptionConfig | string>;
     multiple?: boolean;
@@ -98,6 +103,7 @@ export interface ModalOptions {
     title?: string;
     show?: boolean;
     staticBackdrop?: boolean;
+    type?: 'modal' | 'offcanvas';
 }
 
 /**
@@ -130,4 +136,8 @@ export interface DynamicFormOptions {
     onInitialized?: (instance: any, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
     theme?: string | any;
     waitForDOMReady?: boolean;
+
+    // Global behavior defaults (overridable per field)
+    allowEmpty?: boolean;            // default false
+    returnNullAsEmpty?: boolean;     // default true
 }

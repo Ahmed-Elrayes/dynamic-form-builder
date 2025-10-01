@@ -20,10 +20,12 @@ export default class DynamicForm {
     private _form;
     private _requiredPackages;
     private _hasSelect2;
+    private _allowEmptyDefault;
+    private _returnNullAsEmptyDefault;
     /**
      * @param {DynamicFormOptions} options
      */
-    constructor({ config, mount, modalOptions, onSubmit, onInitialized, theme, waitForDOMReady }: DynamicFormOptions);
+    constructor({ config, mount, modalOptions, onSubmit, onInitialized, theme, waitForDOMReady, allowEmpty, returnNullAsEmpty }: DynamicFormOptions);
     /**
      * Get the form element
      * @returns {HTMLFormElement}

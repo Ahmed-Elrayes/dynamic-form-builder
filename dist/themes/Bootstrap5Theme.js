@@ -200,7 +200,31 @@ export default class Bootstrap5Theme extends Theme {
      * @returns {ModalCreationResult} - Object containing the modal element and the modal body element
      */
     createModal(modalOptions) {
-        // Generate modal structure
+        const type = modalOptions.type || 'modal';
+        // Offcanvas (Bootstrap 5.2) support
+        if (type === 'offcanvas') {
+            const offcanvas = document.createElement('div');
+            offcanvas.className = 'offcanvas offcanvas-end';
+            offcanvas.id = modalOptions.id || '';
+            offcanvas.tabIndex = -1;
+            if (modalOptions.title) {
+                offcanvas.ariaLabel = modalOptions.title;
+            }
+            offcanvas.ariaHidden = 'true';
+            offcanvas.innerHTML = `
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title">${modalOptions.title || ''}</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body"></div>
+            `;
+            document.body.appendChild(offcanvas);
+            const body = offcanvas.querySelector('.offcanvas-body');
+            if (!body)
+                throw new Error('Offcanvas body element not found');
+            return { modal: offcanvas, modalBody: body };
+        }
+        // Default: Modal
         const modal = document.createElement('div');
         modal.className = this.getModalClasses();
         modal.id = modalOptions.id || '';
@@ -208,7 +232,7 @@ export default class Bootstrap5Theme extends Theme {
         if (modalOptions.title) {
             modal.ariaLabel = modalOptions.title;
         }
-        modal.ariaHidden = "true";
+        modal.ariaHidden = 'true';
         modal.innerHTML = `
             <div class="${this.getModalDialogClasses()}">
                 <div class="${this.getModalContentClasses()}">
@@ -237,17 +261,33 @@ export default class Bootstrap5Theme extends Theme {
      * @returns {ModalInstance} - The modal instance
      */
     initializeModal(modal, options) {
-        // Initialize Bootstrap modal
-        if (!window.bootstrap || !window.bootstrap.Modal) {
-            console.warn('Bootstrap Modal not found. Make sure Bootstrap is loaded.');
-            // Return a dummy modal instance to prevent errors
+        if (!window.bootstrap) {
+            console.warn('Bootstrap not found. Make sure Bootstrap is loaded.');
+            return { show: () => { }, hide: () => { }, toggle: () => { }, dispose: () => { }, getInstance: () => null };
+        }
+        // Offcanvas case
+        if (modal.classList.contains('offcanvas')) {
+            const Offcanvas = window.bootstrap.Offcanvas;
+            if (!Offcanvas) {
+                console.warn('Bootstrap Offcanvas not found.');
+                return { show: () => { }, hide: () => { }, toggle: () => { }, dispose: () => { }, getInstance: () => null };
+            }
+            const offcanvasInstance = new Offcanvas(modal, { backdrop: options?.staticBackdrop ? true : true });
+            modal.addEventListener('hidden.bs.offcanvas', () => {
+                modal.dispatchEvent(new CustomEvent('offcanvas:hidden'));
+            });
             return {
-                show: () => { },
-                hide: () => { },
-                toggle: () => { },
-                dispose: () => { },
-                getInstance: () => null
+                show: () => offcanvasInstance.show(),
+                hide: () => offcanvasInstance.hide(),
+                toggle: () => offcanvasInstance.toggle(),
+                dispose: () => offcanvasInstance.dispose(),
+                getInstance: () => offcanvasInstance
             };
+        }
+        // Default modal case
+        if (!window.bootstrap.Modal) {
+            console.warn('Bootstrap Modal not found. Make sure Bootstrap is loaded.');
+            return { show: () => { }, hide: () => { }, toggle: () => { }, dispose: () => { }, getInstance: () => null };
         }
         const modalInstance = new window.bootstrap.Modal(modal, { backdrop: 'static', ...options });
         window.addEventListener('hide.bs.modal', () => {
@@ -255,11 +295,9 @@ export default class Bootstrap5Theme extends Theme {
                 document.activeElement.blur();
             }
         });
-        // Set up event listeners
         modal.addEventListener('hidden.bs.modal', () => {
             modal.dispatchEvent(new CustomEvent('modal:hidden'));
         });
-        // Return an object with show/hide methods
         return {
             show: () => modalInstance.show(),
             hide: () => modalInstance.hide(),

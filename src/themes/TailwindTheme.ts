@@ -229,6 +229,55 @@ export default class TailwindTheme extends Theme {
      * @returns {ModalCreationResult} - Object containing the modal element and the modal body element
      */
     createModal(modalOptions: ModalOptions): ModalCreationResult {
+        const type = modalOptions.type || 'modal';
+
+        if (type === 'offcanvas') {
+            // Tailwind "offcanvas" (slide-over) structure
+            const container = document.createElement('div');
+            container.className = 'tw-offcanvas fixed inset-0 z-50 hidden';
+            container.id = modalOptions.id || '';
+            container.tabIndex = -1;
+            if (modalOptions.title) container.ariaLabel = modalOptions.title;
+            container.ariaHidden = 'true';
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'absolute inset-0 bg-black/50 transition-opacity opacity-0';
+            container.appendChild(backdrop);
+
+            const panel = document.createElement('div');
+            panel.className = 'absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform translate-x-full transition-transform';
+            container.appendChild(panel);
+
+            const header = document.createElement('div');
+            header.className = 'flex items-center justify-between px-4 py-3 border-b';
+            panel.appendChild(header);
+
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-medium text-gray-900';
+            title.textContent = modalOptions.title || '';
+            header.appendChild(title);
+
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'text-gray-400 hover:text-gray-600';
+            closeButton.setAttribute('data-dismiss', 'offcanvas');
+            closeButton.innerHTML = `
+                <span class="sr-only">Close</span>
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            `;
+            header.appendChild(closeButton);
+
+            const body = document.createElement('div');
+            body.className = 'p-4 overflow-auto h-[calc(100%-3.5rem)]';
+            panel.appendChild(body);
+
+            document.body.appendChild(container);
+
+            return { modal: container, modalBody: body };
+        }
+
         // Generate modal structure with Tailwind CSS classes
         const modal = document.createElement('div');
         modal.className = this.getModalClasses();
@@ -237,7 +286,7 @@ export default class TailwindTheme extends Theme {
         if (modalOptions.title) {
             modal.ariaLabel = modalOptions.title;
         }
-        modal.ariaHidden = "true";
+        modal.ariaHidden = 'true';
 
         // Create backdrop
         const backdrop = document.createElement('div');
@@ -300,8 +349,45 @@ export default class TailwindTheme extends Theme {
      * @returns {ModalInstance} - The modal instance
      */
     initializeModal(modal: HTMLElement, options?: ModalOptions): ModalInstance {
-        // Tailwind doesn't have built-in modal functionality, so we implement it ourselves
+        // Offcanvas-like slide-over
+        if (modal.classList.contains('tw-offcanvas')) {
+            const backdrop = modal.querySelector('.absolute.inset-0') as HTMLElement | null;
+            const panel = modal.querySelector('.absolute.right-0') as HTMLElement | null;
 
+            const closeBtn = modal.querySelector('button[data-dismiss="offcanvas"]') as HTMLElement | null;
+            if (closeBtn) closeBtn.addEventListener('click', () => hide());
+            if (backdrop && !options?.staticBackdrop) backdrop.addEventListener('click', (e: Event) => { if (e.target === backdrop) hide(); });
+
+            const show = () => {
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    if (backdrop) backdrop.style.opacity = '1';
+                    if (panel) panel.classList.remove('translate-x-full');
+                    document.body.classList.add('overflow-hidden');
+                });
+            };
+            const hide = () => {
+                if (backdrop) backdrop.style.opacity = '0';
+                if (panel) panel.classList.add('translate-x-full');
+                document.body.classList.remove('overflow-hidden');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.dispatchEvent(new CustomEvent('offcanvas:hidden'));
+                }, 200);
+            };
+            const toggle = () => modal.classList.contains('hidden') ? show() : hide();
+            const dispose = () => { modal.remove(); };
+
+            // ESC key
+            const escKeyHandler = (e: KeyboardEvent) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) hide();
+            };
+            document.addEventListener('keydown', escKeyHandler);
+
+            return { show, hide, toggle, dispose, getInstance: () => null };
+        }
+
+        // Modal fallback (existing logic)
         // Add event listener to close button
         const closeButton = modal.querySelector('button[data-dismiss="modal"]');
         if (closeButton) {
