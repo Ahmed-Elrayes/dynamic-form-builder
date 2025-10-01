@@ -234,6 +234,11 @@ export default class TailwindTheme extends Theme {
         if (type === 'offcanvas') {
             // Tailwind "offcanvas" (slide-over) structure
             const container = document.createElement('div');
+            let containerElementClassName = 'tw-offcanvas fixed inset-0 z-50 hidden';
+            if(modalOptions.extendContainerClass !== undefined){
+                containerElementClassName += ` ${modalOptions.extendContainerClass}`
+            }
+            container.className = containerElementClassName;
             container.className = 'tw-offcanvas fixed inset-0 z-50 hidden';
             container.id = modalOptions.id || '';
             container.tabIndex = -1;
@@ -279,24 +284,29 @@ export default class TailwindTheme extends Theme {
         }
 
         // Generate modal structure with Tailwind CSS classes
-        const modal = document.createElement('div');
-        modal.className = this.getModalClasses();
-        modal.id = modalOptions.id || '';
-        modal.tabIndex = -1;
-        if (modalOptions.title) {
-            modal.ariaLabel = modalOptions.title;
+        const container = document.createElement('div');
+        let containerElementClassName = this.getModalClasses();
+        if(modalOptions.extendContainerClass !== undefined){
+            containerElementClassName += ` ${modalOptions.extendContainerClass}`
         }
-        modal.ariaHidden = 'true';
+        container.className = containerElementClassName;
+        container.className = this.getModalClasses();
+        container.id = modalOptions.id || '';
+        container.tabIndex = -1;
+        if (modalOptions.title) {
+            container.ariaLabel = modalOptions.title;
+        }
+        container.ariaHidden = 'true';
 
         // Create backdrop
         const backdrop = document.createElement('div');
         backdrop.className = 'fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity';
-        modal.appendChild(backdrop);
+        container.appendChild(backdrop);
 
         // Create dialog container
         const dialogContainer = document.createElement('div');
         dialogContainer.className = this.getModalDialogClasses();
-        modal.appendChild(dialogContainer);
+        container.appendChild(dialogContainer);
 
         // Create content container
         const contentContainer = document.createElement('div');
@@ -334,10 +344,10 @@ export default class TailwindTheme extends Theme {
         body.className = this.getModalBodyClasses();
         contentContainer.appendChild(body);
 
-        document.body.appendChild(modal);
+        document.body.appendChild(container);
 
         return {
-            modal: modal,
+            modal: container,
             modalBody: body
         };
     }

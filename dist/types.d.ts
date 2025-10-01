@@ -78,6 +78,7 @@ export interface ModalOptions {
     show?: boolean;
     staticBackdrop?: boolean;
     type?: 'modal' | 'offcanvas';
+    extendContainerClass?: string;
 }
 /**
  * Modal instance returned by theme.initializeModal
