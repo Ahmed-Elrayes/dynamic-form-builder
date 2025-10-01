@@ -240,37 +240,45 @@ export default class Bootstrap5Theme extends Theme {
 
         // Offcanvas (Bootstrap 5.2) support
         if (type === 'offcanvas') {
-            const offcanvas = document.createElement('div');
-            offcanvas.className = 'offcanvas offcanvas-end';
-            offcanvas.id = modalOptions.id || '';
-            offcanvas.tabIndex = -1;
-            if (modalOptions.title) {
-                offcanvas.ariaLabel = modalOptions.title;
+            const container = document.createElement('div');
+            let containerElementClassName = 'offcanvas offcanvas-end';
+            if(modalOptions.extendContainerClass !== undefined){
+                containerElementClassName += ` ${modalOptions.extendContainerClass}`
             }
-            offcanvas.ariaHidden = 'true';
-            offcanvas.innerHTML = `
+            container.className = containerElementClassName;
+            container.id = modalOptions.id || '';
+            container.tabIndex = -1;
+            if (modalOptions.title) {
+                container.ariaLabel = modalOptions.title;
+            }
+            container.ariaHidden = 'true';
+            container.innerHTML = `
                 <div class="offcanvas-header">
                     <h5 class="offcanvas-title">${modalOptions.title || ''}</h5>
                     <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                 </div>
                 <div class="offcanvas-body"></div>
             `;
-            document.body.appendChild(offcanvas);
-            const body = offcanvas.querySelector('.offcanvas-body');
+            document.body.appendChild(container);
+            const body = container.querySelector('.offcanvas-body');
             if (!body) throw new Error('Offcanvas body element not found');
-            return { modal: offcanvas, modalBody: body as HTMLElement };
+            return { modal: container, modalBody: body as HTMLElement };
         }
 
         // Default: Modal
-        const modal = document.createElement('div');
-        modal.className = this.getModalClasses();
-        modal.id = modalOptions.id || '';
-        modal.tabIndex = -1;
-        if (modalOptions.title) {
-            modal.ariaLabel = modalOptions.title;
+        const container = document.createElement('div');
+        let modalElementClassName = this.getModalClasses();
+        if(modalOptions.extendContainerClass !== undefined){
+            modalElementClassName += ` ${modalOptions.extendContainerClass}`
         }
-        modal.ariaHidden = 'true';
-        modal.innerHTML = `
+        container.className = modalElementClassName;
+        container.id = modalOptions.id || '';
+        container.tabIndex = -1;
+        if (modalOptions.title) {
+            container.ariaLabel = modalOptions.title;
+        }
+        container.ariaHidden = 'true';
+        container.innerHTML = `
             <div class="${this.getModalDialogClasses()}">
                 <div class="${this.getModalContentClasses()}">
                     <div class="${this.getModalHeaderClasses()}">
@@ -281,15 +289,15 @@ export default class Bootstrap5Theme extends Theme {
                 </div>
             </div>
         `;
-        document.body.appendChild(modal);
+        document.body.appendChild(container);
 
-        const modalBody = modal.querySelector('.' + this.getModalBodyClasses().split(' ')[0]);
+        const modalBody = container.querySelector('.' + this.getModalBodyClasses().split(' ')[0]);
         if (!modalBody) {
             throw new Error('Modal body element not found');
         }
 
         return {
-            modal: modal,
+            modal: container,
             modalBody: modalBody as HTMLElement
         };
     }

@@ -90,7 +90,7 @@ DynamicForm options
 new DynamicForm({
   config: FieldConfig[],
   mount?: string | HTMLElement | null, // if omitted or null, renders in a modal
-  modalOptions?: ModalOptions,         // id, title, show, staticBackdrop, type ('modal' | 'offcanvas')
+  modalOptions?: ModalOptions,         // id, title, show, staticBackdrop, type ('modal' | 'offcanvas'), extendContainerClass
   onSubmit: (formData, form, instance) => Promise<any> | any,
   onInitialized?: (instance, form, inputs) => void,
   theme?: 'bootstrap5' | 'tailwind' | Theme,
@@ -240,7 +240,7 @@ Example (Bootstrap 5.2 or Tailwind):
 new DynamicForm({
   config: [ /* fields */ ],
   mount: null, // render in container
-  modalOptions: { title: 'Create Item', type: 'offcanvas', show: true },
+  modalOptions: { title: 'Create Item', type: 'offcanvas', show: true, extendContainerClass: 'offcanvas-size-lg' },
   theme: 'bootstrap5', // or 'tailwind'
   onSubmit: (fd) => {/* ... */}
 });
