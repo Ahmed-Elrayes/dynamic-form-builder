@@ -86,11 +86,11 @@ Modal usage: omit mount (or pass null) and a theme modal will be created.
 
 DynamicForm options
 
-```ts
+```
 new DynamicForm({
   config: FieldConfig[],
   mount?: string | HTMLElement | null, // if omitted or null, renders in a modal
-  modalOptions?: ModalOptions,         // id, title, show, staticBackdrop
+  modalOptions?: ModalOptions,         // id, title, show, staticBackdrop, type ('modal' | 'offcanvas')
   onSubmit: (formData, form, instance) => Promise<any> | any,
   onInitialized?: (instance, form, inputs) => void,
   theme?: 'bootstrap5' | 'tailwind' | Theme,
@@ -227,3 +227,25 @@ Dropzone
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+### Modal and Offcanvas containers
+
+- By default, when you omit mount, the form renders in a modal container.
+- You can switch to an offcanvas container by setting modalOptions.type = 'offcanvas'.
+
+Example (Bootstrap 5.2 or Tailwind):
+
+```js
+new DynamicForm({
+  config: [ /* fields */ ],
+  mount: null, // render in container
+  modalOptions: { title: 'Create Item', type: 'offcanvas', show: true },
+  theme: 'bootstrap5', // or 'tailwind'
+  onSubmit: (fd) => {/* ... */}
+});
+```
+
+Notes:
+- Bootstrap theme uses native Bootstrap 5.2 Modal/Offcanvas APIs (make sure you loaded Bootstrap JS/CSS).
+- Tailwind theme provides a lightweight modal/offcanvas implementation using utility classes.

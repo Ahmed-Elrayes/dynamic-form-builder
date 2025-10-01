@@ -20,6 +20,9 @@ export interface FieldConfig {
     placeholder?: string;
     required?: boolean;
     helper?: string;
+    readonly?: boolean;
+    allowEmpty?: boolean;
+    returnNullAsEmpty?: boolean;
     options?: Array<OptionConfig | string>;
     multiple?: boolean;
     select2Options?: Select2Options;
@@ -74,6 +77,7 @@ export interface ModalOptions {
     title?: string;
     show?: boolean;
     staticBackdrop?: boolean;
+    type?: 'modal' | 'offcanvas';
 }
 /**
  * Modal instance returned by theme.initializeModal
@@ -103,4 +107,6 @@ export interface DynamicFormOptions {
     onInitialized?: (instance: any, form: HTMLFormElement, inputs: Record<string, HTMLElement | HTMLElement[]>) => void;
     theme?: string | any;
     waitForDOMReady?: boolean;
+    allowEmpty?: boolean;
+    returnNullAsEmpty?: boolean;
 }

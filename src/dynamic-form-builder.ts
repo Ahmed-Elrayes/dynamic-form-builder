@@ -28,6 +28,10 @@ export default class DynamicForm {
     private _requiredPackages: Set<string> = new Set();
     private _hasSelect2: boolean = false; // Flag to track if select2 is available
 
+    // Global defaults for submission behavior
+    private _allowEmptyDefault: boolean = false;
+    private _returnNullAsEmptyDefault: boolean = true;
+
     /**
      * @param {DynamicFormOptions} options
      */
@@ -38,12 +42,18 @@ export default class DynamicForm {
                     onSubmit,
                     onInitialized = undefined,
                     theme = null,
-                    waitForDOMReady = false
+                    waitForDOMReady = false,
+                    allowEmpty = false,
+                    returnNullAsEmpty = true
                 }: DynamicFormOptions) {
         this._config = config;
         this._mount = typeof mount === 'string' ? document.getElementById(mount) : mount;
         this._onSubmit = onSubmit;
         this._onInitialized = onInitialized;
+        // Set global behavior defaults
+        this._allowEmptyDefault = !!allowEmpty;
+        this._returnNullAsEmptyDefault = !!returnNullAsEmpty;
+
         // Check for required packages based on field types
         this.#checkRequiredPackages();
 
@@ -59,7 +69,8 @@ export default class DynamicForm {
         this._modalOptions = Object.assign({
             id: 'dynamicFormModal',
             title: 'Form Submission',
-            show: true
+            show: true,
+            type: 'modal'
         }, modalOptions);
 
         // If waitForDOMReady is true, wait for DOM to be fully loaded before initializing
@@ -113,9 +124,12 @@ export default class DynamicForm {
                 staticBackdrop: true
             });
 
-            // Listen for the modal:hidden event
+            // Listen for the container hidden events (modal/offcanvas)
             if (this._modal) {
                 this._modal.addEventListener('modal:hidden', () => {
+                    this.destroy();
+                });
+                this._modal.addEventListener('offcanvas:hidden', () => {
                     this.destroy();
                 });
             }
@@ -252,6 +266,7 @@ export default class DynamicForm {
                     if (field.rows) (input as HTMLTextAreaElement).rows = field.rows;
                     if (field.required) (input as HTMLTextAreaElement).required = true;
                     if (field.value) (input as HTMLTextAreaElement).value = field.value;
+                    if (field.readonly) (input as HTMLTextAreaElement).readOnly = true;
                     group.appendChild(input);
                     if (typeof field.onCreate === 'function') {
                         field.onCreate(input, field, idx);
@@ -265,6 +280,7 @@ export default class DynamicForm {
                     (input as HTMLSelectElement).multiple = field.multiple || false;
                     (input as HTMLSelectElement).name = (input as HTMLSelectElement).multiple ? `${field.name}[]` : field.name;
                     if (field.required) (input as HTMLSelectElement).required = true;
+                    if (field.readonly) (input as HTMLSelectElement).disabled = true;
                     if (Array.isArray(field.options)) {
                         field.options.forEach((opt: string | OptionConfig) => {
                             const option = document.createElement('option');
@@ -359,6 +375,7 @@ export default class DynamicForm {
                     (input as HTMLSelectElement).multiple = field.multiple || false;
                     (input as HTMLSelectElement).name = (input as HTMLSelectElement).multiple ? `${field.name}[]` : field.name;
                     if (field.required) (input as HTMLSelectElement).required = true;
+                    if (field.readonly) (input as HTMLSelectElement).disabled = true;
                     if (Array.isArray(field.options)) {
                         field.options.forEach((opt: string | OptionConfig) => {
                             const option = document.createElement('option');
@@ -400,6 +417,7 @@ export default class DynamicForm {
                     (input as HTMLInputElement).id = field.name || '';
                     if (field.required) (input as HTMLInputElement).required = true;
                     if (field.value) (input as HTMLInputElement).checked = Boolean(field.value);
+                    if (field.readonly) (input as HTMLInputElement).disabled = true;
 
                     // Label after input
                     const cLabel = document.createElement('label');
@@ -442,6 +460,8 @@ export default class DynamicForm {
                                 }
                             }
 
+                            if (field.readonly) radioInput.disabled = true;
+
                             const radioLabel = document.createElement('label');
                             radioLabel.className = this._theme.getRadioLabelClasses();
                             radioLabel.setAttribute('for', field.name + '_' + i);
@@ -469,6 +489,7 @@ export default class DynamicForm {
                     (input as HTMLInputElement).id = field.name || '';
                     if (field.required) (input as HTMLInputElement).required = true;
                     if (field.accept) (input as HTMLInputElement).accept = field.accept;
+                    if (field.readonly) (input as HTMLInputElement).disabled = true;
 
                     // For preview/info
                     const fileInfo = document.createElement('div');
@@ -572,6 +593,7 @@ export default class DynamicForm {
                     const dzDiv = document.createElement('div');
                     dzDiv.id = field.name ? `${field.name}_dropzone` : `dropzone_${idx}`;
                     dzDiv.className = 'dropzone';
+                    if (field.readonly) dzDiv.classList.add('pointer-events-none', 'opacity-50');
                     group.appendChild(dzDiv);
                     input = dzDiv;
 
@@ -632,6 +654,7 @@ export default class DynamicForm {
                     if ('min' in field) (input as HTMLInputElement).min = String(field.min);
                     if ('max' in field) (input as HTMLInputElement).max = String(field.max);
                     if ('value' in field) (input as HTMLInputElement).value = field.value;
+                    if (field.readonly) (input as HTMLInputElement).readOnly = true;
 
                     if (typeof field.onCreate === 'function') {
                         field.onCreate(input, field, idx);
@@ -1150,6 +1173,7 @@ export default class DynamicForm {
 
             // Custom handling for CKEditor if you have it (handle via field.name)
             this._ckeditors.forEach(editorField => {
+                if (editorField.readonly) return; // do not include readonly fields
                 const ta = editorField.ckeditorInstance;
                 if (ta) {
                     formData.set(editorField.name, ta.getData());
@@ -1158,6 +1182,7 @@ export default class DynamicForm {
 
             // Append files from Dropzone fields that don't have a URL (defer upload until submit)
             this._config.forEach(field => {
+                if (field.readonly) return; // exclude readonly
                 if (field.type === 'dropzone') {
                     const hasUrl = field.dropzoneOptions && typeof field.dropzoneOptions.url === 'string' && field.dropzoneOptions.url.length > 0;
                     if (!hasUrl && field.dropzoneInstance && typeof field.dropzoneInstance.getAcceptedFiles === 'function') {
@@ -1175,6 +1200,7 @@ export default class DynamicForm {
 
             // Ensure checkboxes are included even when unchecked
             this._config.forEach(field => {
+                if (field.readonly) return; // skip readonly fields
                 if (field.type === 'checkbox') {
                     const inputs = this._form.querySelectorAll(`input[type="checkbox"][name="${field.name}"]`) as NodeListOf<HTMLInputElement>;
                     if (inputs.length <= 1) {
@@ -1193,6 +1219,89 @@ export default class DynamicForm {
                             }
                         }
                     }
+                }
+            });
+
+            // Remove readonly fields from FormData and enforce allowEmpty/returnNullAsEmpty
+            this._config.forEach(field => {
+                const isReadonly = !!field.readonly;
+                const allowEmpty = (typeof field.allowEmpty === 'boolean') ? field.allowEmpty : this._allowEmptyDefault;
+                const returnNullAsEmpty = (typeof field.returnNullAsEmpty === 'boolean') ? field.returnNullAsEmpty : this._returnNullAsEmptyDefault;
+
+                // Utility: delete both plain and [] keys
+                const deleteKeys = () => {
+                    formData.delete(field.name);
+                    formData.delete(`${field.name}[]`);
+                };
+
+                if (isReadonly) {
+                    deleteKeys();
+                    return;
+                }
+
+                // Derive current value from DOM to evaluate emptiness
+                let value: any = undefined;
+                let inputs: any = field.input;
+                if (field.type === 'radio') {
+                    const radios = Array.from(this._form.querySelectorAll(`input[name="${field.name}"]`)) as HTMLInputElement[];
+                    const checkedRadio = radios.find(r => r.checked);
+                    value = checkedRadio ? checkedRadio.value : '';
+                } else if (field.type === 'checkbox') {
+                    const checks = Array.from(this._form.querySelectorAll(`input[type="checkbox"][name="${field.name}"]`)) as HTMLInputElement[];
+                    if (checks.length > 1) {
+                        value = checks.filter(c => c.checked).map(c => c.value);
+                    } else {
+                        value = checks[0] ? checks[0].checked : false;
+                    }
+                } else if (field.type === 'select') {
+                    const select = this._form.querySelector(`select[name="${field.name}"]`) as HTMLSelectElement | null;
+                    if (select) {
+                        value = select.multiple ? Array.from(select.selectedOptions).map(o => o.value) : (select.value ?? '');
+                    }
+                } else if (field.type === 'select2') {
+                    // underlying select element reflects value; rely on it
+                    const select = this._form.querySelector(`select[name="${field.multiple ? field.name + '[]' : field.name}"]`) as HTMLSelectElement | null;
+                    if (select) {
+                        value = select.multiple ? Array.from(select.selectedOptions).map(o => o.value) : (select.value ?? '');
+                    }
+                } else if (field.type === 'ckeditor') {
+                    value = field.ckeditorInstance ? field.ckeditorInstance.getData() : '';
+                } else if (field.type === 'textarea') {
+                    const ta = this._form.querySelector(`textarea[name="${field.name}"]`) as HTMLTextAreaElement | null;
+                    value = ta ? ta.value : '';
+                } else if (field.type === 'file' || field.type === 'dropzone') {
+                    // Files: if none selected, treat as null
+                    value = null;
+                } else {
+                    const el = this._form.querySelector(`input[name="${field.name}"]`) as HTMLInputElement | null;
+                    value = el ? el.value : '';
+                }
+
+                const isNull = value === null;
+                const isEmptyString = typeof value === 'string' && value.trim() === '';
+                const isEmptyArray = Array.isArray(value) && value.length === 0;
+                const isEmpty = isNull || isEmptyString || isEmptyArray;
+
+                // Ensure key existence when allowed and remove when not allowed
+                const hasKey = formData.has(field.name) || formData.has(`${field.name}[]`);
+
+                if (isEmpty) {
+                    if (allowEmpty) {
+                        // include as empty
+                        const emptyVal = isNull ? (returnNullAsEmpty ? '' : null) : (Array.isArray(value) ? '' : '');
+                        // If returnNullAsEmpty is false and value is null, omit it
+                        if (isNull && !returnNullAsEmpty) {
+                            deleteKeys();
+                        } else {
+                            // ensure plain key exists with empty string
+                            formData.set(field.name, String(emptyVal === null ? '' : emptyVal));
+                        }
+                    } else {
+                        // not allowed: remove any existing keys
+                        deleteKeys();
+                    }
+                } else {
+                    // Non-empty: nothing special. But if multiple, ensure keys exist already by browser.
                 }
             });
 
