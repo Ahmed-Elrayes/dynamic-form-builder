@@ -1200,9 +1200,25 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 const ta = this._form.querySelector(`textarea[name="${field.name}"]`);
                 value = ta ? ta.value : '';
             }
-            else if (field.type === 'file' || field.type === 'dropzone') {
-                // Files: if none selected, treat as null
-                value = null;
+            else if (field.type === 'file') {
+                // Inspect actual file input to determine emptiness accurately
+                const fileInput = this._form.querySelector(`input[type="file"][name="${field.name}"] , input[type="file"][name="${field.name}[]"]`);
+                const files = fileInput?.files ? Array.from(fileInput.files) : [];
+                value = files.length > 0 ? files : null;
+            }
+            else if (field.type === 'dropzone') {
+                // If Dropzone is used without direct upload URL, check accepted files queue
+                const hasUrl = field.dropzoneOptions && typeof field.dropzoneOptions.url === 'string' && field.dropzoneOptions.url.length > 0;
+                if (!hasUrl && field.dropzoneInstance && typeof field.dropzoneInstance.getAcceptedFiles === 'function') {
+                    const dzFiles = field.dropzoneInstance.getAcceptedFiles();
+                    value = dzFiles && dzFiles.length > 0 ? dzFiles : null;
+                }
+                else {
+                    // When Dropzone uploads directly (has URL), files are handled outside FormData here
+                    // Consider value non-empty only if there are accepted files queued (rare when autoProcessQueue=false)
+                    const dzFilesFallback = field.dropzoneInstance?.getAcceptedFiles?.() || [];
+                    value = dzFilesFallback.length > 0 ? dzFilesFallback : '';
+                }
             }
             else {
                 const el = this._form.querySelector(`input[name="${field.name}"]`);

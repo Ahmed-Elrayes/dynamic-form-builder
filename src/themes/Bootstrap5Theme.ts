@@ -251,7 +251,6 @@ export default class Bootstrap5Theme extends Theme {
             if (modalOptions.title) {
                 container.ariaLabel = modalOptions.title;
             }
-            container.ariaHidden = 'true';
             container.innerHTML = `
                 <div class="offcanvas-header">
                     <h5 class="offcanvas-title">${modalOptions.title || ''}</h5>
@@ -277,7 +276,6 @@ export default class Bootstrap5Theme extends Theme {
         if (modalOptions.title) {
             container.ariaLabel = modalOptions.title;
         }
-        container.ariaHidden = 'true';
         container.innerHTML = `
             <div class="${this.getModalDialogClasses()}">
                 <div class="${this.getModalContentClasses()}">
