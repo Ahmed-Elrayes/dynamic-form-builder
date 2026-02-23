@@ -1,0 +1,19 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/" # location of package.json
+    schedule:
+      interval: "weekly" # daily | weekly | monthly
+    open-pull-requests-limit: 5
+    versioning-strategy: auto
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "dependabot"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      - dependency-type: "indirect"
