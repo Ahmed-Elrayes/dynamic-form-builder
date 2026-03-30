@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@types/jquery": "^3.5.32",
-    "typescript": "^5.0.0"
+    "typescript": "^6.0.2"
   },
   "files": [
     "dist",
