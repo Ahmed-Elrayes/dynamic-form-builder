@@ -20,6 +20,7 @@ class DynamicForm {
         this._modal = null;
         this._requiredPackages = new Set();
         this._hasSelect2 = false; // Flag to track if select2 is available
+        this._isResetting = false; // True while clearForm() is programmatically resetting fields
         // Global defaults for submission behavior
         this._allowEmptyDefault = false;
         this._returnNullAsEmptyDefault = true;
@@ -130,88 +131,96 @@ class DynamicForm {
     clearForm() {
         // Clear all validations
         __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearAllValidation).call(this);
-        // Reset all input values
-        this._config.forEach(field => {
-            if (field.type === 'submit')
-                return;
-            switch (field.type) {
-                case 'checkbox': {
-                    const checkbox = this._form.querySelector(`[name="${field.name}"]`);
-                    if (checkbox)
-                        checkbox.checked = false;
-                    break;
-                }
-                case 'radio': {
-                    const radios = this._form.querySelectorAll(`input[name="${field.name}"]`);
-                    radios.forEach(radio => radio.checked = false);
-                    break;
-                }
-                case 'select': {
-                    const select = this._form.querySelector(`select[name="${field.name}"]`);
-                    if (select) {
-                        const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
-                        if (resetValue !== undefined) {
-                            const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
-                            Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
+        // Suppress validation triggered by programmatic value changes below (e.g. select2's
+        // .trigger('change')), which would otherwise immediately re-flag required fields as invalid.
+        this._isResetting = true;
+        try {
+            // Reset all input values
+            this._config.forEach(field => {
+                if (field.type === 'submit')
+                    return;
+                switch (field.type) {
+                    case 'checkbox': {
+                        const checkbox = this._form.querySelector(`[name="${field.name}"]`);
+                        if (checkbox)
+                            checkbox.checked = false;
+                        break;
+                    }
+                    case 'radio': {
+                        const radios = this._form.querySelectorAll(`input[name="${field.name}"]`);
+                        radios.forEach(radio => radio.checked = false);
+                        break;
+                    }
+                    case 'select': {
+                        const select = this._form.querySelector(`select[name="${field.name}"]`);
+                        if (select) {
+                            const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
+                            if (resetValue !== undefined) {
+                                const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
+                                Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
+                            }
+                            else if (select.multiple) {
+                                Array.from(select.options).forEach(option => option.selected = false);
+                            }
+                            else {
+                                select.selectedIndex = 0;
+                            }
                         }
-                        else if (select.multiple) {
-                            Array.from(select.options).forEach(option => option.selected = false);
+                        break;
+                    }
+                    case 'select2': {
+                        if (field.select2Instance) {
+                            const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
+                            $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
                         }
-                        else {
-                            select.selectedIndex = 0;
+                        break;
+                    }
+                    case 'file': {
+                        const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`);
+                        if (fileInput) {
+                            fileInput.value = '';
+                            // Clear file preview if exists
+                            const fileInfo = fileInput.parentElement?.querySelector('.' + this._theme.getFileInfoClasses());
+                            if (fileInfo) {
+                                fileInfo.classList.add('d-none');
+                                fileInfo.innerHTML = '';
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
-                case 'select2': {
-                    if (field.select2Instance) {
-                        const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
-                        $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
-                    }
-                    break;
-                }
-                case 'file': {
-                    const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`);
-                    if (fileInput) {
-                        fileInput.value = '';
-                        // Clear file preview if exists
-                        const fileInfo = fileInput.parentElement?.querySelector('.' + this._theme.getFileInfoClasses());
-                        if (fileInfo) {
-                            fileInfo.classList.add('d-none');
-                            fileInfo.innerHTML = '';
+                    case 'dropzone': {
+                        if (field.dropzoneInstance && typeof field.dropzoneInstance.removeAllFiles === 'function') {
+                            field.dropzoneInstance.removeAllFiles(true);
                         }
+                        break;
                     }
-                    break;
-                }
-                case 'dropzone': {
-                    if (field.dropzoneInstance && typeof field.dropzoneInstance.removeAllFiles === 'function') {
-                        field.dropzoneInstance.removeAllFiles(true);
+                    case 'ckeditor': {
+                        if (field.ckeditorInstance) {
+                            field.ckeditorInstance.setData('');
+                        }
+                        break;
                     }
-                    break;
-                }
-                case 'ckeditor': {
-                    if (field.ckeditorInstance) {
-                        field.ckeditorInstance.setData('');
+                    case 'textarea': {
+                        const textarea = this._form.querySelector(`textarea[name="${field.name}"]`);
+                        if (textarea)
+                            textarea.value = '';
+                        break;
                     }
-                    break;
+                    default: {
+                        const input = this._form.querySelector(`input[name="${field.name}"]`);
+                        if (input)
+                            input.value = '';
+                    }
                 }
-                case 'textarea': {
-                    const textarea = this._form.querySelector(`textarea[name="${field.name}"]`);
-                    if (textarea)
-                        textarea.value = '';
-                    break;
+                // Clear any custom field state
+                if (typeof field.onClear === 'function') {
+                    field.onClear(field.input, field);
                 }
-                default: {
-                    const input = this._form.querySelector(`input[name="${field.name}"]`);
-                    if (input)
-                        input.value = '';
-                }
-            }
-            // Clear any custom field state
-            if (typeof field.onClear === 'function') {
-                field.onClear(field.input, field);
-            }
-        });
+            });
+        }
+        finally {
+            this._isResetting = false;
+        }
         return this;
     }
 }
@@ -362,7 +371,8 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                                 ...field.select2Options
                             }).on('change', () => {
                                 __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearValidation).call(this, field);
-                                __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateField).call(this, field);
+                                if (!this._isResetting)
+                                    __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateField).call(this, field);
                             });
                             const select2Selection = $(field.select2Instance).data('select2');
                             field.$select2Container = select2Selection.$container.get(0);
