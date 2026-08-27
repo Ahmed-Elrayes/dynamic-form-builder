@@ -25,6 +25,7 @@ export interface FieldConfig {
     returnNullAsEmpty?: boolean;
     options?: Array<OptionConfig | string>;
     multiple?: boolean;
+    default?: string | number | boolean;
     select2Options?: Select2Options;
     select2Instance?: any;
     $select2Container?: HTMLElement;

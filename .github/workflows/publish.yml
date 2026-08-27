@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  id-token: write  # Required for OIDC (npm provenance)
+  id-token: write  # Required for OIDC trusted publishing
   contents: read
 
 jobs:
@@ -17,9 +17,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # Trusted publishing requires npm >= 11.5.1
       - name: Use latest npm
         run: npm install -g npm@latest
 
@@ -32,7 +33,9 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Publish to npm (with provenance)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+      # No NPM_TOKEN needed: this package's npm Trusted Publisher config
+      # (npmjs.com > package > Settings > Trusted Publisher) trusts this
+      # exact repo + workflow filename via GitHub's OIDC token. Provenance
+      # is attached automatically.
+      - name: Publish to npm
+        run: npm publish --access public
