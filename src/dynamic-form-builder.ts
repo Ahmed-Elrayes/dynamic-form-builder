@@ -27,6 +27,7 @@ export default class DynamicForm {
     private _form!: HTMLFormElement;
     private _requiredPackages: Set<string> = new Set();
     private _hasSelect2: boolean = false; // Flag to track if select2 is available
+    private _isResetting: boolean = false; // True while clearForm() is programmatically resetting fields
 
     // Global defaults for submission behavior
     private _allowEmptyDefault: boolean = false;
@@ -318,7 +319,7 @@ export default class DynamicForm {
                                     ...field.select2Options
                                 }).on('change', () => {
                                     this.#clearValidation(field);
-                                    this.#validateField(field);
+                                    if (!this._isResetting) this.#validateField(field);
                                 });
                                 const select2Selection = $(field.select2Instance).data('select2');
                                 field.$select2Container = select2Selection.$container.get(0);
@@ -1102,84 +1103,92 @@ export default class DynamicForm {
         // Clear all validations
         this.#clearAllValidation();
 
-        // Reset all input values
-        this._config.forEach(field => {
-            if (field.type === 'submit') return;
+        // Suppress validation triggered by programmatic value changes below (e.g. select2's
+        // .trigger('change')), which would otherwise immediately re-flag required fields as invalid.
+        this._isResetting = true;
 
-            switch (field.type) {
-                case 'checkbox': {
-                    const checkbox = this._form.querySelector(`[name="${field.name}"]`) as HTMLInputElement;
-                    if (checkbox) checkbox.checked = false;
-                    break;
-                }
-                case 'radio': {
-                    const radios = this._form.querySelectorAll(`input[name="${field.name}"]`) as NodeListOf<HTMLInputElement>;
-                    radios.forEach(radio => radio.checked = false);
-                    break;
-                }
-                case 'select': {
-                    const select = this._form.querySelector(`select[name="${field.name}"]`) as HTMLSelectElement;
-                    if (select) {
-                        const resetValue = this.#resolveResetSelectValue(field);
-                        if (resetValue !== undefined) {
-                            const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
-                            Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
-                        } else if (select.multiple) {
-                            Array.from(select.options).forEach(option => option.selected = false);
-                        } else {
-                            select.selectedIndex = 0;
-                        }
-                    }
-                    break;
-                }
-                case 'select2': {
-                    if (field.select2Instance) {
-                        const resetValue = this.#resolveResetSelectValue(field);
-                        $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
-                    }
-                    break;
-                }
-                case 'file': {
-                    const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`) as HTMLInputElement;
-                    if (fileInput) {
-                        fileInput.value = '';
-                        // Clear file preview if exists
-                        const fileInfo = fileInput.parentElement?.querySelector('.' + this._theme.getFileInfoClasses());
-                        if (fileInfo) {
-                            fileInfo.classList.add('d-none');
-                            fileInfo.innerHTML = '';
-                        }
-                    }
-                    break;
-                }
-                case 'dropzone': {
-                    if (field.dropzoneInstance && typeof field.dropzoneInstance.removeAllFiles === 'function') {
-                        field.dropzoneInstance.removeAllFiles(true);
-                    }
-                    break;
-                }
-                case 'ckeditor': {
-                    if (field.ckeditorInstance) {
-                        field.ckeditorInstance.setData('');
-                    }
-                    break;
-                }
-                case 'textarea': {
-                    const textarea = this._form.querySelector(`textarea[name="${field.name}"]`) as HTMLTextAreaElement;
-                    if (textarea) textarea.value = '';
-                    break;
-                }
-                default: {
-                    const input = this._form.querySelector(`input[name="${field.name}"]`) as HTMLInputElement;
-                    if (input) input.value = '';
-                }
-            }
+        try {
+            // Reset all input values
+            this._config.forEach(field => {
+                if (field.type === 'submit') return;
 
-            // Clear any custom field state
-            if (typeof field.onClear === 'function') {
-                field.onClear(field.input, field);
-            }
-        });
+                switch (field.type) {
+                    case 'checkbox': {
+                        const checkbox = this._form.querySelector(`[name="${field.name}"]`) as HTMLInputElement;
+                        if (checkbox) checkbox.checked = false;
+                        break;
+                    }
+                    case 'radio': {
+                        const radios = this._form.querySelectorAll(`input[name="${field.name}"]`) as NodeListOf<HTMLInputElement>;
+                        radios.forEach(radio => radio.checked = false);
+                        break;
+                    }
+                    case 'select': {
+                        const select = this._form.querySelector(`select[name="${field.name}"]`) as HTMLSelectElement;
+                        if (select) {
+                            const resetValue = this.#resolveResetSelectValue(field);
+                            if (resetValue !== undefined) {
+                                const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
+                                Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
+                            } else if (select.multiple) {
+                                Array.from(select.options).forEach(option => option.selected = false);
+                            } else {
+                                select.selectedIndex = 0;
+                            }
+                        }
+                        break;
+                    }
+                    case 'select2': {
+                        if (field.select2Instance) {
+                            const resetValue = this.#resolveResetSelectValue(field);
+                            $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
+                        }
+                        break;
+                    }
+                    case 'file': {
+                        const fileInput = this._form.querySelector(`input[name="${field.name}"] , input[name="${field.name}[]"]`) as HTMLInputElement;
+                        if (fileInput) {
+                            fileInput.value = '';
+                            // Clear file preview if exists
+                            const fileInfo = fileInput.parentElement?.querySelector('.' + this._theme.getFileInfoClasses());
+                            if (fileInfo) {
+                                fileInfo.classList.add('d-none');
+                                fileInfo.innerHTML = '';
+                            }
+                        }
+                        break;
+                    }
+                    case 'dropzone': {
+                        if (field.dropzoneInstance && typeof field.dropzoneInstance.removeAllFiles === 'function') {
+                            field.dropzoneInstance.removeAllFiles(true);
+                        }
+                        break;
+                    }
+                    case 'ckeditor': {
+                        if (field.ckeditorInstance) {
+                            field.ckeditorInstance.setData('');
+                        }
+                        break;
+                    }
+                    case 'textarea': {
+                        const textarea = this._form.querySelector(`textarea[name="${field.name}"]`) as HTMLTextAreaElement;
+                        if (textarea) textarea.value = '';
+                        break;
+                    }
+                    default: {
+                        const input = this._form.querySelector(`input[name="${field.name}"]`) as HTMLInputElement;
+                        if (input) input.value = '';
+                    }
+                }
+
+                // Clear any custom field state
+                if (typeof field.onClear === 'function') {
+                    field.onClear(field.input, field);
+                }
+            });
+        } finally {
+            this._isResetting = false;
+        }
 
         return this;
     }

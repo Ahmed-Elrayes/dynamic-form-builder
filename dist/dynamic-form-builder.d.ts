@@ -20,6 +20,7 @@ export default class DynamicForm {
     private _form;
     private _requiredPackages;
     private _hasSelect2;
+    private _isResetting;
     private _allowEmptyDefault;
     private _returnNullAsEmptyDefault;
     /**
