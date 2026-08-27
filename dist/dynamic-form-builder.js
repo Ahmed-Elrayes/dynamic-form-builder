@@ -3,7 +3,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _DynamicForm_instances, _DynamicForm_initialize, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_handleSubmit, _DynamicForm_checkRequiredPackages, _DynamicForm_checkPackageAvailability, _DynamicForm_isBoolean;
+var _DynamicForm_instances, _DynamicForm_initialize, _DynamicForm_render, _DynamicForm_validateField, _DynamicForm_validateInputs, _DynamicForm_clearValidation, _DynamicForm_clearAllValidation, _DynamicForm_validateForm, _DynamicForm_resolveResetSelectValue, _DynamicForm_handleSubmit, _DynamicForm_checkRequiredPackages, _DynamicForm_checkPackageAvailability, _DynamicForm_isBoolean;
 // IMPORTANT: CKEditor must be globally available (e.g. via CDN in your Blade, see below)
 // You may also use CKEditor 5/4 npm but for simplicity, CDN is often easier for use in forms
 import $ from 'jquery';
@@ -149,7 +149,12 @@ class DynamicForm {
                 case 'select': {
                     const select = this._form.querySelector(`select[name="${field.name}"]`);
                     if (select) {
-                        if (select.multiple) {
+                        const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
+                        if (resetValue !== undefined) {
+                            const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
+                            Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
+                        }
+                        else if (select.multiple) {
                             Array.from(select.options).forEach(option => option.selected = false);
                         }
                         else {
@@ -160,7 +165,8 @@ class DynamicForm {
                 }
                 case 'select2': {
                     if (field.select2Instance) {
-                        $(field.select2Instance).val(null).trigger('change');
+                        const resetValue = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_resolveResetSelectValue).call(this, field);
+                        $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
                     }
                     break;
                 }
@@ -325,18 +331,15 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 if (field.readonly)
                     input.disabled = true;
                 if (Array.isArray(field.options)) {
+                    const hasExplicitSelected = field.options.some((o) => typeof o === 'object' && !!o.selected);
                     field.options.forEach((opt) => {
                         const option = document.createElement('option');
-                        if (typeof opt === 'object') {
-                            option.value = String(opt.value);
-                            option.textContent = opt.label;
-                            option.selected = !!opt.selected;
-                        }
-                        else {
-                            option.value = opt;
-                            option.textContent = opt;
-                            option.selected = false;
-                        }
+                        const optValue = typeof opt === 'object' ? opt.value : opt;
+                        option.value = String(optValue);
+                        option.textContent = typeof opt === 'object' ? opt.label : opt;
+                        option.selected = hasExplicitSelected
+                            ? (typeof opt === 'object' && !!opt.selected)
+                            : (field.default !== undefined && String(optValue) === String(field.default));
                         input && input.appendChild(option);
                     });
                 }
@@ -416,31 +419,20 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
                 if (field.readonly)
                     input.disabled = true;
                 if (Array.isArray(field.options)) {
+                    const hasExplicitSelected = field.options.some((o) => typeof o === 'object' && !!o.selected);
                     field.options.forEach((opt) => {
                         const option = document.createElement('option');
-                        if (typeof opt === 'object') {
-                            option.value = String(opt.value);
-                            option.textContent = opt.label;
-                            if (field.value !== undefined) {
-                                if (Array.isArray(field.value)) {
-                                    option.selected = field.value.includes(opt.value);
-                                }
-                                else {
-                                    option.selected = field.value === opt.value || !!field.selected;
-                                }
-                            }
+                        const optValue = typeof opt === 'object' ? opt.value : opt;
+                        option.value = String(optValue);
+                        option.textContent = typeof opt === 'object' ? opt.label : opt;
+                        if (hasExplicitSelected) {
+                            option.selected = typeof opt === 'object' && !!opt.selected;
                         }
-                        else {
-                            option.value = opt;
-                            option.textContent = opt;
-                            if (field.value !== undefined) {
-                                if (Array.isArray(field.value)) {
-                                    option.selected = field.value.includes(opt);
-                                }
-                                else {
-                                    option.selected = field.value === opt || !!field.selected;
-                                }
-                            }
+                        else if (field.value !== undefined) {
+                            option.selected = Array.isArray(field.value) ? field.value.includes(optValue) : field.value === optValue;
+                        }
+                        else if (field.default !== undefined) {
+                            option.selected = String(optValue) === String(field.default);
                         }
                         input && input.appendChild(option);
                     });
@@ -1089,6 +1081,22 @@ _DynamicForm_instances = new WeakSet(), _DynamicForm_initialize = function _Dyna
         }
     });
     return allValid;
+}, _DynamicForm_resolveResetSelectValue = function _DynamicForm_resolveResetSelectValue(field) {
+    if (!Array.isArray(field.options))
+        return undefined;
+    const selectedOpts = field.options.filter(o => typeof o === 'object' && !!o.selected);
+    if (selectedOpts.length > 0) {
+        const values = selectedOpts.map(o => String(o.value));
+        return field.multiple ? values : values[0];
+    }
+    if (field.default !== undefined) {
+        const match = field.options.find(o => String(typeof o === 'object' ? o.value : o) === String(field.default));
+        if (match !== undefined) {
+            const value = String(typeof match === 'object' ? match.value : match);
+            return field.multiple ? [value] : value;
+        }
+    }
+    return undefined;
 }, _DynamicForm_handleSubmit = async function _DynamicForm_handleSubmit() {
     __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_clearAllValidation).call(this);
     let isValid = __classPrivateFieldGet(this, _DynamicForm_instances, "m", _DynamicForm_validateForm).call(this);

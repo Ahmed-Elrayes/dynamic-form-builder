@@ -282,17 +282,15 @@ export default class DynamicForm {
                     if (field.required) (input as HTMLSelectElement).required = true;
                     if (field.readonly) (input as HTMLSelectElement).disabled = true;
                     if (Array.isArray(field.options)) {
+                        const hasExplicitSelected = field.options.some((o: string | OptionConfig) => typeof o === 'object' && !!(o as OptionConfig).selected);
                         field.options.forEach((opt: string | OptionConfig) => {
                             const option = document.createElement('option');
-                            if (typeof opt === 'object') {
-                                option.value = String(opt.value);
-                                option.textContent = opt.label;
-                                option.selected = !!opt.selected;
-                            } else {
-                                option.value = opt;
-                                option.textContent = opt;
-                                option.selected = false;
-                            }
+                            const optValue = typeof opt === 'object' ? opt.value : opt;
+                            option.value = String(optValue);
+                            option.textContent = typeof opt === 'object' ? opt.label : opt;
+                            option.selected = hasExplicitSelected
+                                ? (typeof opt === 'object' && !!opt.selected)
+                                : (field.default !== undefined && String(optValue) === String(field.default));
                             input && (input as HTMLSelectElement).appendChild(option);
                         });
                     }
@@ -377,29 +375,21 @@ export default class DynamicForm {
                     if (field.required) (input as HTMLSelectElement).required = true;
                     if (field.readonly) (input as HTMLSelectElement).disabled = true;
                     if (Array.isArray(field.options)) {
+                        const hasExplicitSelected = field.options.some((o: string | OptionConfig) => typeof o === 'object' && !!(o as OptionConfig).selected);
                         field.options.forEach((opt: string | OptionConfig) => {
                             const option = document.createElement('option');
-                            if (typeof opt === 'object') {
-                                option.value = String(opt.value);
-                                option.textContent = opt.label;
-                                if (field.value !== undefined) {
-                                    if (Array.isArray(field.value)) {
-                                        option.selected = field.value.includes(opt.value);
-                                    } else {
-                                        option.selected = field.value === opt.value || !!field.selected;
-                                    }
-                                }
-                            } else {
-                                option.value = opt;
-                                option.textContent = opt;
-                                if (field.value !== undefined) {
-                                    if (Array.isArray(field.value)) {
-                                        option.selected = field.value.includes(opt);
-                                    } else {
-                                        option.selected = field.value === opt || !!field.selected;
-                                    }
-                                }
+                            const optValue = typeof opt === 'object' ? opt.value : opt;
+                            option.value = String(optValue);
+                            option.textContent = typeof opt === 'object' ? opt.label : opt;
+
+                            if (hasExplicitSelected) {
+                                option.selected = typeof opt === 'object' && !!opt.selected;
+                            } else if (field.value !== undefined) {
+                                option.selected = Array.isArray(field.value) ? field.value.includes(optValue) : field.value === optValue;
+                            } else if (field.default !== undefined) {
+                                option.selected = String(optValue) === String(field.default);
                             }
+
                             input && (input as HTMLSelectElement).appendChild(option);
                         });
                     }
@@ -1079,6 +1069,32 @@ export default class DynamicForm {
     }
 
     /**
+     * Resolves the option value(s) a select/select2 field should fall back to on reset:
+     * an explicitly selected option wins, otherwise the option matching `field.default`.
+     * @param {FieldConfig} field - The select/select2 field config
+     * @returns {string | string[] | undefined} Value (or values, if multiple) to select, or undefined for no fallback
+     */
+    #resolveResetSelectValue(field: FieldConfig): string | string[] | undefined {
+        if (!Array.isArray(field.options)) return undefined;
+
+        const selectedOpts = field.options.filter(o => typeof o === 'object' && !!(o as OptionConfig).selected) as OptionConfig[];
+        if (selectedOpts.length > 0) {
+            const values = selectedOpts.map(o => String(o.value));
+            return field.multiple ? values : values[0];
+        }
+
+        if (field.default !== undefined) {
+            const match = field.options.find(o => String(typeof o === 'object' ? (o as OptionConfig).value : o) === String(field.default));
+            if (match !== undefined) {
+                const value = String(typeof match === 'object' ? (match as OptionConfig).value : match);
+                return field.multiple ? [value] : value;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
      * Clears all form inputs and validations, effectively reinitializing the form
      * @returns {DynamicForm} The form instance for chaining
      */
@@ -1104,7 +1120,11 @@ export default class DynamicForm {
                 case 'select': {
                     const select = this._form.querySelector(`select[name="${field.name}"]`) as HTMLSelectElement;
                     if (select) {
-                        if (select.multiple) {
+                        const resetValue = this.#resolveResetSelectValue(field);
+                        if (resetValue !== undefined) {
+                            const resetValues = Array.isArray(resetValue) ? resetValue : [resetValue];
+                            Array.from(select.options).forEach(option => option.selected = resetValues.includes(option.value));
+                        } else if (select.multiple) {
                             Array.from(select.options).forEach(option => option.selected = false);
                         } else {
                             select.selectedIndex = 0;
@@ -1114,7 +1134,8 @@ export default class DynamicForm {
                 }
                 case 'select2': {
                     if (field.select2Instance) {
-                        $(field.select2Instance).val(null).trigger('change');
+                        const resetValue = this.#resolveResetSelectValue(field);
+                        $(field.select2Instance).val(resetValue !== undefined ? resetValue : null).trigger('change');
                     }
                     break;
                 }

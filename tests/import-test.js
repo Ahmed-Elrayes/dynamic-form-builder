@@ -44,6 +44,12 @@ try {
     process.exit(1);
   }
 
+  // Check that select/select2 "default" option resolution logic was compiled in
+  if (!dfbContent.includes('field.default') || !dfbContent.includes('hasExplicitSelected')) {
+    console.error('Error: select/select2 "default" option handling not found in dynamic-form-builder.js!');
+    process.exit(1);
+  }
+
   console.log('Package content verification successful!');
 } catch (error) {
   console.error('Error verifying package content:', error);

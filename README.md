@@ -109,6 +109,7 @@ Common FieldConfig keys
 - helper?: string
 - options?: Array<{ label: string; value: string|number|boolean; selected?: boolean } | string>
 - multiple?: boolean
+- default?: string|number|boolean (select/select2 only: option value to select on init and on form reset, unless an option has `selected: true`)
 - select2Options?: Record<string, any>
 - dropzoneOptions?: Record<string, any>
 - rows?: number (textarea)

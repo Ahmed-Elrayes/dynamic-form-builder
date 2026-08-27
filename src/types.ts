@@ -34,6 +34,7 @@ export interface FieldConfig {
     // Select/Radio/Checkbox options
     options?: Array<OptionConfig | string>;
     multiple?: boolean;
+    default?: string | number | boolean; // Option value to select on init/reset, unless an option has selected: true
 
     // Select2 specific options
     select2Options?: Select2Options;
